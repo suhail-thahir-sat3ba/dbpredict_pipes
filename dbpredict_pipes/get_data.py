@@ -1,4 +1,4 @@
-from ._globals import __queries__ as query_path
+from ._globals import __queries__ as query_path, __xwalks__ as xwalk_path
 import datetime
 from dateutil.relativedelta import relativedelta
 
@@ -139,7 +139,27 @@ def get_sql_inputs(data_type,criteria,enrollee_qry):
     elif data_type=='procedures':
         pass
     elif data_type=='specialties':
-        pass
+        pwr50_keys = criteria['phys_codes']
+        
+        key_ama_path = str(xwalk_path) + 'AMA_spec.pickle' 
+        key_to_ama = pd.read_pickle(key_ama_path)
+        ama_specs = list(key_to_ama[key_to_ama['pwr_key'].isin(pwr50_keys)]['AMA_Equivalent'])
+        
+        ama_power_path = str(xwalk_path) + 'power_to_AMA.pickle'
+        ama_to_power = pd.read_pickle(ama_power_path)
+        power_specs = list(ama_to_power[ama_to_power['AMA_Equivalent'].isin(ama_specs)]['power top 50'])
+        power_str = str(power_specs)[1:-1]
+        
+        ama_hr_path = str(xwalk_path) + 'healthrules_to_AMA.pickle'
+        ama_to_healthrules = pd.read_pickle(ama_hr_path)
+        hr_specs = list(ama_to_healthrules[ama_to_healthrules['AMA_Equivalent'].isin(ama_specs)]['TXNMY_DESC'])
+        hr_str = str(hr_specs)[1:-1]
+        
+        sql_inputs = {'power_specs': power_str,
+                      'health_rules_specs': hr_str,
+                      'start_date' : t_start.strftime("%d-%b-%Y").upper(),
+                      'end_date' : t_end.strftime("%d-%b-%Y").upper()}
+        
     elif data_type=='labs':
         pass
     elif data_type=='drugs':
@@ -192,7 +212,8 @@ def get_sql_query(data_type,sql_inputs):
                         received {}""".format(type(sql_inputs)))
     
     filename_dict = {'enrollees' : 'enrollee_frame.txt',
-                     'drugs': 'rx_frame.txt'}
+                     'drugs': 'rx_frame.txt',
+                     'specialties': 'phys_frame.txt'}
     
     with open(str(query_path) + "/" + filename_dict[data_type]) as txt:
         qry = txt.read()
