@@ -1,0 +1,72 @@
+with active_roster AS
+    (SELECT distinct t6.empi
+    FROM
+    (
+        (SELECT empi
+            FROM MBR_MONTHS.MBR_MONTHS_CORP15
+            inner join bi.d_mbr
+                using(mbr_id)
+            WHERE CLNDR_MONTH = {t6m} AND CLNDR_YEAR = {t6y}) t6
+        INNER JOIN 
+        (SELECT empi
+            FROM MBR_MONTHS.MBR_MONTHS_CORP15
+            inner join bi.d_mbr
+                using(mbr_id)
+            WHERE CLNDR_MONTH = {t5m} AND CLNDR_YEAR = {t5y}) t5
+        ON 	t6.empi = t5.empi
+        INNER JOIN 
+        (SELECT empi
+            FROM MBR_MONTHS.MBR_MONTHS_CORP15
+            inner join bi.d_mbr
+                using(mbr_id)
+            WHERE CLNDR_MONTH = {t4m} AND CLNDR_YEAR = {t4y}) t4
+        ON 	t6.empi = t4.empi
+        INNER JOIN 
+        (SELECT empi
+            FROM MBR_MONTHS.MBR_MONTHS_CORP15
+            inner join bi.d_mbr
+                using(mbr_id)
+            WHERE CLNDR_MONTH = {t3m} AND CLNDR_YEAR = {t3y}) t3
+        ON 	t6.empi = t3.empi
+        INNER JOIN 
+        (SELECT empi
+            FROM MBR_MONTHS.MBR_MONTHS_CORP15
+            inner join bi.d_mbr
+                using(mbr_id)
+            WHERE CLNDR_MONTH = {t2m} AND CLNDR_YEAR = {t2y}) t2
+        ON 	t6.empi = t2.empi
+        INNER JOIN 
+        (SELECT empi
+            FROM MBR_MONTHS.MBR_MONTHS_CORP15
+            inner join bi.d_mbr
+                using(mbr_id)
+            WHERE CLNDR_MONTH = {t1m} AND CLNDR_YEAR = {t1y}
+            and floor((to_date('{today}') - mbr_DOB) / 365.25) >= 18) t1
+        ON 	t6.empi = t1.empi
+    )
+)
+select * from (
+    SELECT Q2.empi,
+           Q2.RUN_DATE AS FIRST_RUN_DT
+    FROM
+        (SELECT Q1.*,
+                ROW_NUMBER() OVER 
+                    (PARTITION BY Q1.empi 
+                     ORDER BY Q1.RUN_DATE
+                    ) AS IND_NBR
+         FROM
+            (SELECT DISTINCT empi, RUN_DATE, YYYYMM
+            FROM DIS_REG.F_DIS_REG 
+            WHERE DIAB = 1) Q1
+         ) Q2
+    inner JOIN active_roster m1
+        ON Q2.empi = m1.empi
+    INNER JOIN DIS_REG.F_DIS_REG dr
+        ON Q2.empi = dr.empi
+    WHERE Q2.IND_NBR = 1
+        AND dr.DIAB_CURR_RUN = 1
+        AND dr.YYYYMM = '{t1y}{t1m}')
+full outer join active_roster
+    using (empi)
+where first_run_dt is NULL --active and never had diabetes
+;
