@@ -44,7 +44,9 @@ with active_roster AS
             and floor((to_date('{today}') - mbr_DOB) / 365.25) >= 18) t1
         ON 	t6.empi = t1.empi
     )
-)
+),
+data_pull_members as
+(
 select * from (
     SELECT Q2.empi,
            Q2.RUN_DATE AS FIRST_RUN_DT
@@ -69,4 +71,4 @@ select * from (
 full outer join active_roster
     using (empi)
 where first_run_dt is NULL --active and never had diabetes
-;
+)

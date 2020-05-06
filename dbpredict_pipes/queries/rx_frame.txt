@@ -1,0 +1,49 @@
+{enrollee_qry}
+select empi, gpi_class, count(gpi_class) as prescs from
+(   --GET GPI SUB CLASS level medication utilization ~790 CATEGORIES
+    (select mbr_id, gpi_class, serv_date
+        from
+        (select gpi_code, SUBSTR(GPI_CODE, 1, 6) as gpi_class, mbr_id, serv_date
+            FROM BI.F_RX_CLM RX 
+            INNER JOIN BI.D_RX_PROD PROD ON PROD.PRIM_KEY=RX.RX_PROD_KEY
+            where prod.RX_PROD_TYPE_CODE = '03'
+			and serv_date BETWEEN '{start_date}' AND '{end_date}'
+        )
+		WHERE gpi_class IN ({cls_codes})
+    )
+    UNION ALL
+    (--Get GPI Therapeutic Class
+    select mbr_id, therapeutic_class as gpi_class, serv_date
+        from
+        (
+        select mbr_id, 
+        CASE WHEN SUBSTR(GPI_CODE,1,2) >= '01' AND SUBSTR(GPI_CODE,1,2) <= '16' THEN '1'
+             WHEN SUBSTR(GPI_CODE,1,2)  >= '17' AND SUBSTR(GPI_CODE,1,2) <= '20' THEN '2'
+             WHEN SUBSTR(GPI_CODE,1,2)  >= '21' AND SUBSTR(GPI_CODE,1,2) <= '21' THEN '3'
+             WHEN SUBSTR(GPI_CODE,1,2)  >= '22' AND SUBSTR(GPI_CODE,1,2) <= '30' THEN '4'
+             WHEN SUBSTR(GPI_CODE,1,2)  >='31' AND SUBSTR(GPI_CODE,1,2) <= '40' THEN '5'
+             WHEN SUBSTR(GPI_CODE,1,2)  >= '41' AND SUBSTR(GPI_CODE,1,2) <= '45' THEN '6'
+             WHEN SUBSTR(GPI_CODE,1,2)  >= '46' AND SUBSTR(GPI_CODE,1,2) <= '52' THEN '7'
+             WHEN SUBSTR(GPI_CODE,1,2)  >= '53' AND SUBSTR(GPI_CODE,1,2) <= '56' THEN '8'
+             WHEN SUBSTR(GPI_CODE,1,2)  >= '57' AND SUBSTR(GPI_CODE,1,2) <= '63' THEN '9'
+             WHEN SUBSTR(GPI_CODE,1,2)  >= '64' AND SUBSTR(GPI_CODE,1,2) <= '71' THEN '10'
+             WHEN SUBSTR(GPI_CODE,1,2)  >= '72' AND SUBSTR(GPI_CODE,1,2) <= '76' THEN '11'
+             WHEN SUBSTR(GPI_CODE,1,2)  >= '77' AND SUBSTR(GPI_CODE,1,2) <= '81' THEN '12'
+             WHEN SUBSTR(GPI_CODE,1,2)  >= '82' AND SUBSTR(GPI_CODE,1,2) <= '85' THEN '13'
+             WHEN SUBSTR(GPI_CODE,1,2)  >= '86' AND SUBSTR(GPI_CODE,1,2) <= '91' THEN '14'
+             WHEN SUBSTR(GPI_CODE,1,2)  >= '92' AND SUBSTR(GPI_CODE,1,2) <= '99' THEN '15'
+             ELSE '16' END AS THERAPEUTIC_CLASS,
+        serv_date
+        FROM BI.F_RX_CLM RX 
+            INNER JOIN BI.D_RX_PROD PROD ON PROD.PRIM_KEY=RX.RX_PROD_KEY 
+        )
+		
+		WHERE THERAPEUTIC_CLASS IN ({ther_codes})
+		
+   ) 
+)
+inner join BI.D_MBR MBR
+    using (mbr_id)
+where empi in (select distinct empi from data_pull_members)
+group by empi, gpi_class
+;
