@@ -166,8 +166,17 @@ def get_sql_inputs(data_type,criteria,enrollee_qry):
     
     elif data_type=='specialties':
         pass
+    
+    
     elif data_type=='labs':
-        pass
+        if 'loincs' not in criteria:
+            raise KeyError("Expected 'loincs' in criteria.")
+        
+        loincs = criteria['loinc_codes']
+        
+        sql_inputs = {'start_date' : t_start.strftime("%d-%b-%Y").upper(),
+                      'end_date' : t_end.strftime("%d-%b-%Y").upper(),
+                      'loincs' : loincs}
     
     
     elif data_type=='drugs':
@@ -217,8 +226,9 @@ def get_sql_query(data_type,sql_inputs):
     
     filename_dict = {'enrollees' : 'enrollee_frame.txt',
                      'drugs': 'rx_frame.txt',
-                     'procedures' : 'proc_frame.txt'
-                     'diagnoses' : 'dx_frame.txt'}
+                     'procedures' : 'proc_frame.txt',
+                     'diagnoses' : 'dx_frame.txt',
+                     'labs' : 'lab_frame.txt'}
     
     with open(str(query_path) + "/" + filename_dict[data_type]) as txt:
         qry = txt.read()
