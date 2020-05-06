@@ -2,7 +2,7 @@ from ._globals import __queries__ as query_path
 import datetime
 from dateutil.relativedelta import relativedelta
 
-def get_data(data_type,model,criteria=[]):
+def get_data(data_type,model,criteria={}):
     '''
     DESCRIPTION
 
@@ -15,9 +15,9 @@ def get_data(data_type,model,criteria=[]):
     model : str
         String specifying for which model data is pulled (i.e. for which 
         enrollees to make predictions.)
-    criteria : list, optional
+    criteria : dict, optional
         List of data elements to query (e.g. which diagnoses codes). 
-        Default is [].
+        Default is {}.
     
     Returns
     -------
@@ -36,8 +36,8 @@ def get_data(data_type,model,criteria=[]):
     if data_type not in data_types:
         raise ValueError ('{} is not a valid data type.'.format(data_type))
 
-    if type(criteria) is not list:
-        raise TypeError("""criteria is incorrect type. Expected list but 
+    if type(criteria) is not dict:
+        raise TypeError("""criteria is incorrect type. Expected dict but 
                         received {}.""".format(type(criteria)))
     
     if type(model) is not str:
@@ -49,20 +49,14 @@ def get_data(data_type,model,criteria=[]):
         raise ValueError ('{} is not a vaild model.'.format(model))
     
     
-    # get SQL query inputs
-    if criteria:
-        sql_inputs = get_sql_inputs(data_type,criteria)
-    else:
-        sql_inputs = ''
-    
     # get enrollees
     enrollee_qry = get_enrollee_query(model)
     
+    # get SQL query inputs
+    sql_inputs = get_sql_inputs(data_type,criteria,enrollee_qry)
+    
     # create query
-    if data_type == 'enrollees':
-        qry = enrollee_qry
-    else:
-        qry = get_sql_query(data_type,sql_inputs,enrollee_qry)
+    qry = get_sql_query(data_type,sql_inputs)
     
     # execute query
             ### SUHAIL ADD ###
@@ -74,42 +68,6 @@ def get_data(data_type,model,criteria=[]):
             ### SUHAIL ADD ###
     path = ''
     return path
-    
-
-def get_sql_inputs(data_type,criteria):
-    '''
-    DESCRIPTION
-
-    Parameters
-    ----------
-    data_type : TYPE
-        DESCRIPTION.
-    criteria : TYPE
-        DESCRIPTION.
-
-    Returns
-    -------
-    None.
-
-    '''
-    
-    if data_type=='enrollees':
-        pass
-    elif data_type=='diagnoses':
-        pass
-    elif data_type=='procedures':
-        pass
-    elif data_type=='specialties':
-        pass
-    elif data_type=='labs':
-        pass
-    elif data_type=='drugs':
-        pass
-    elif data_type=='demographics':
-        pass
-    
-    sql_inputs = ''
-    return sql_inputs
     
 
 def get_enrollee_query(model):
@@ -146,45 +104,101 @@ def get_enrollee_query(model):
         model_path = str(query_path) + '/np_dc.txt'
         
     elif model == 'd_c':
+        # get_enrollee_qry('np_dc')
         pass                    # SET model_path HERE
     
     with open(model_path) as txt:
         qry = txt.read()
     
-    qry = qry.format(modeldict)
+    qry = qry.format(**modeldict)
     
     return qry
 
 
-def get_sql_query(data_type,sql_inputs,enrollee_qry):
+def get_sql_inputs(data_type,criteria,enrollee_qry):
     '''
     DESCRIPTION
 
     Parameters
     ----------
-    data_type : string
+    data_type : TYPE
         DESCRIPTION.
-    sql_inputs : string
-        DESCRIPTION.
-    enrollee_qry : string
+    criteria : TYPE
         DESCRIPTION.
 
     Returns
     -------
-    qry : string
-        DESCRIPTION.
+    None.
 
     '''
     
-    if type(sql_inputs) is not str:
-        raise TypeError("""sql_inputs is incorrect type. Expected str but 
+    if data_type=='enrollees':
+        pass
+    elif data_type=='diagnoses':
+        pass
+    elif data_type=='procedures':
+        pass
+    elif data_type=='specialties':
+        pass
+    elif data_type=='labs':
+        pass
+    elif data_type=='drugs':
+        # test to make sure dict has rx_cls and rx_ther
+        
+        rx_cls = criteria['rx_cls']
+        rx_cls_str = str(rx_cls)[1:-1]
+        
+        rx_ther = criteria['rx_ther']
+        rx_ther_str = str(rx_ther)[1:-1]
+        
+        now = datetime.datetime.now()
+        
+        t_end = now.replace(day=1)-relativedelta(days=1)
+        t_start = t_end - relativedelta(years=5) + relativedelta(days=1)
+        
+        sql_inputs = {'cls_codes' : rx_cls_str,
+                      'ther_codes' : rx_ther_str,
+                      'start_date' : t_start.strftime("%d-%b-%Y").upper(),
+                      'end_date' : t_end.strftime("%d-%b-%Y").upper()}
+        
+    elif data_type=='demographics':
+        pass
+    
+    sql_inputs = sql_inputs.update({'enrollee_qry' : enrollee_qry})
+    
+    return sql_inputs
+    
+
+def get_sql_query(data_type,sql_inputs):
+    '''
+    Creates the final SQL query based on frame and inputs.
+
+    Parameters
+    ----------
+    data_type : string
+        String specifying which data type to pull.
+    sql_inputs : dict
+        Dictionary of inputs to the SQL query frame.
+    
+    Returns
+    -------
+    qry : string
+        Final SQL query.
+
+    '''
+    
+    if type(sql_inputs) is not dict:
+        raise TypeError("""sql_inputs is incorrect type. Expected dict but 
                         received {}""".format(type(sql_inputs)))
     
-    if type(enrollee_qry) is not str:
-        raise TypeError("""enrollee_qry is incorrect type. Expected str but 
-                        received {}""".format(type(enrollee_qry)))
+    filename_dict = {'enrollees' : 'enrollee_frame.txt',
+                     'drugs': 'rx_frame.txt'}
     
-    
+    with open(str(query_path) + "/" + filename_dict[data_type]) as txt:
+        qry = txt.read()
+    qry = qry.format(**sql_inputs)
+        
+    return qry
     
     
     
