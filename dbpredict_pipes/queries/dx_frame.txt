@@ -1,0 +1,49 @@
+{enrollee_qry}
+,
+CLAIMS_DATA as (
+select mbr_id, serv_line_start_date, cpt_code
+from (
+SELECT * 
+FROM BI.F_CLM clm 
+	INNER JOIN BI.F_CLM_EXT EXT 
+		ON CLM.TRANSACTION_REF = EXT.TRANSACTION_REF
+    inner join bi.d_mbr 
+        using (mbr_id)
+	WHERE
+		(CLM.SERV_LINE_START_DATE BETWEEN '{start_date}' AND '{end_date}')
+		AND (  	(    CLM.SRC_SYS = 'HA' 
+				 AND CLM.CURR_FLAG = 'Y' 
+				 AND UPPER(CLM.CLM_STAT_CODE) = 'FINAL' 
+				 AND CLM.CNVRTD_FLAG = 'N') 
+			 OR (    CLM.SRC_SYS = 'MHS' 
+				 AND CLM.CURR_FLAG = 'Y' 
+				 AND CLM.RVSD_FROM_CLM_LINE_NBR = '0' 
+				 AND CLM.RVSD_TO_CLM_LINE_NBR = '0'
+				 AND (EXT.DEND_FLAG <> 'D' OR EXT.DEND_FLAG IS NULL )
+				)
+			)
+		AND empi in (SELECT DISTINCT empi FROM data_pull_members)
+        )
+)
+SELECT DISTINCT empi, dx_code, SERV_LINE_START_DATE, diag_vrsn_ind FROM
+        (select mbr_id, replace(dx_code, '.',''), diag_vrsn_ind, SERV_LINE_START_DATE
+        from
+            (select mbr_id, serv_line_start_date, diag_vrsn_ind, CLM_PRIN_DIAG_CODE as dx_code
+            from CLAIMS_DATA
+            UNION ALL
+            select mbr_id, serv_line_start_date, diag_vrsn_ind, CLM_OTHER_DIAG_CODE_1 as dx_code
+            from CLAIMS_DATA
+            UNION ALL
+            select mbr_id, serv_line_start_date, diag_vrsn_ind, CLM_OTHER_DIAG_CODE_2 as dx_code
+            from CLAIMS_DATA
+            UNION ALL
+            select mbr_id, serv_line_start_date, diag_vrsn_ind, CLM_OTHER_DIAG_CODE_3 as dx_code
+            from CLAIMS_DATA)
+        )
+INNER JOIN BI.D_MBR MBR
+    USING (mbr_id)
+WHERE  (dx_code IN ({dx_icd9})
+		AND diag_vrsn_ind = 'ICD-9')
+	OR (dx_code IN ({dx_icd10})
+		AND diag_vrsn_ind = 'ICD-10')
+;
