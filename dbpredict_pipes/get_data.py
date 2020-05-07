@@ -100,7 +100,9 @@ def get_enrollee_query(model):
         
     elif model == 'd_c':
         now = datetime.datetime.now()
-        yearago = now - relativedelta(months=12)
+        t_end = now.replace(day=1)-relativedelta(days=1)        
+        t_start = t_end - relativedelta(months=12)
+
         t = [now - relativedelta(months=i) for i in range(1,7)]
                
         modeldict = {'t6m' : str(t[5].month).zfill(2), 't6y' : t[5].year,
@@ -109,10 +111,11 @@ def get_enrollee_query(model):
                      't3m' : str(t[2].month).zfill(2), 't3y' : t[2].year,
                      't2m' : str(t[1].month).zfill(2), 't2y' : t[1].year,
                      't1m' : str(t[0].month).zfill(2), 't1y' : t[0].year,
-                     'today' : now.strftime("%d-%b-%y").upper(),
-                     'year_ago': (yearago.strftime("%d-%b-%y").upper(),
-                     'today_yyyymm': str(now.year) +str(now.month).zfill(2) ,
-                     'yearago_yyyymm':  str(yearago.year) + str(yearago.month).zfill(2)
+                     't_end' : t_end.strftime("%d-%b-%y").upper(),
+                     't_start': (t_start.strftime("%d-%b-%y").upper(),
+                     'tend_yyyymm': str(t_end.year) +str(t_end.month).zfill(2),
+                     'tstart_yyyymm':str(t_start.year) + str(t_start.month
+                                                            ).zfill(2)
                      }
         
         model_path = str(query_path) + '/d_c.txt'

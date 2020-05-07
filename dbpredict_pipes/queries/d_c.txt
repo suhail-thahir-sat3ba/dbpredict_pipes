@@ -125,7 +125,7 @@ DM_CMP_02 AS
                     INNER JOIN BI.D_MBR MBR ON T1.MBR_ID = MBR.MBR_ID
                     INNER JOIN BI.F_ENRL ENRL ON MBR.PRIM_KEY = ENRL.MBR_KEY
                     INNER JOIN BI.D_PROD PROD ON ENRL.BEN_PLAN_KEY = PROD.BEN_PLAN_KEY
-                WHERE (ENRL.ENRLM_START_DATE <= '{year_ago}' AND ENRL.ENRLM_END_DATE >= '{today}')) Q1
+                WHERE (ENRL.ENRLM_START_DATE <= '{t_start}' AND ENRL.ENRLM_END_DATE >= '{t_end}')) Q1
         ) Q2
     WHERE Q2.IND_NBR = 1
     ORDER BY Q2.MBR_ID, Q2.BUSINESS_SEGMENT
@@ -166,7 +166,7 @@ DM_CMP_MM AS
                          MM.BUSINESS_SEGMENT
                     FROM DM_CMP_02 T2
                         INNER JOIN IHA_INF.MM_DETAIL_R11 MM ON T2.MBR_ID = MM.MBR_ID
-                    WHERE MM.CAL_YRMTH BETWEEN '{yearago_yyyymm}' AND '{today_yyyymm}' 
+                    WHERE MM.CAL_YRMTH BETWEEN '{tstart_yyyymm}' AND '{tend_yyyymm}' 
             ) Q1
                     
     INNER JOIN IHA_INF.MM_DETAIL_R11 MM2 ON Q1.MBR_ID = MM2.MBR_ID 
@@ -213,7 +213,7 @@ DM_CMP_CLM AS
     INNER JOIN BI.F_CLM_EXT EXT ON CLM.TRANSACTION_REF = EXT.TRANSACTION_REF
     INNER JOIN BI.D_PROD PROD ON CLM.BEN_PLAN_KEY = PROD.BEN_PLAN_KEY
 
-    WHERE (CLM.SERV_LINE_START_DATE BETWEEN '{year_ago}' AND '{today}')
+    WHERE (CLM.SERV_LINE_START_DATE BETWEEN '{t_start}' AND '{t_end}')
         AND ((CLM.SRC_SYS = 'HA' AND CLM.CURR_FLAG = 'Y' AND UPPER(CLM.CLM_STAT_CODE) = 'FINAL' AND CLM.CNVRTD_FLAG = 'N') 
             OR (CLM.SRC_SYS = 'MHS' AND CLM.CURR_FLAG = 'Y' AND CLM.RVSD_FROM_CLM_LINE_NBR = '0' AND CLM.RVSD_TO_CLM_LINE_NBR = '0'
             AND (EXT.DEND_FLAG <> 'D' OR EXT.DEND_FLAG IS NULL )))
