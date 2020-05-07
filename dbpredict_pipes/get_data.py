@@ -23,7 +23,8 @@ def get_data(data_type,model,login, criteria={}):
     criteria : dict, optional
         List of data elements to query (e.g. which diagnoses codes). 
         Default is {}.
-    login: dictionary with keys: 'username' and 'password'
+    login : dict
+        SQL server login credentials. Dictionary with keys: 'username' and 'password'.
     
     Returns
     -------
@@ -60,9 +61,7 @@ def get_data(data_type,model,login, criteria={}):
     qry = get_sql_query(data_type,sql_inputs)
 
     data_chunks =  execute_query(qry, login)
-    
     return_path = save_data(data_chunks, data_type)
-    
     return return_path
 
     
