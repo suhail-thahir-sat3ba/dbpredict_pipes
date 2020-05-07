@@ -1,8 +1,12 @@
-from ._globals import __queries__ as query_path, __xwalks__ as xwalk_path
+from ._globals import __queries__ as query_path, __xwalks__ as xwalk_path, __temp__ as temp_path
 import datetime
 from dateutil.relativedelta import relativedelta
+import sqlalchemy as sqa
+import pandas as pd
+from sqlalchemy.dialects import oracle
+import cx_Oracle
 
-def get_data(data_type,model,criteria={}):
+def get_data(data_type,model,login, criteria={}):
     '''
     DESCRIPTION
 
@@ -18,6 +22,7 @@ def get_data(data_type,model,criteria={}):
     criteria : dict, optional
         List of data elements to query (e.g. which diagnoses codes). 
         Default is {}.
+    login: dictionary with keys: 'username' and 'password'
     
     Returns
     -------
@@ -58,16 +63,9 @@ def get_data(data_type,model,criteria={}):
     # create query
     qry = get_sql_query(data_type,sql_inputs)
     
-    # execute query
-            ### SUHAIL ADD ###
+    return_path =  execute_query(data_type, qry, login)
     
-    # save parquet
-            ### SUHAIL ADD ###
-    
-    # return path
-            ### SUHAIL ADD ###
-    path = ''
-    return path
+    return return_path
     
 
 def get_enrollee_query(model):
@@ -222,7 +220,31 @@ def get_sql_query(data_type,sql_inputs):
     return qry
     
     
+def execute_query(data_type, qry, login):
+    oracle_connection_string = ('oracle+cx_oracle://{username}:{password}@' +
+    cx_Oracle.makedsn('{hostname}', '{port}', service_name='{service_name}'))
     
+    engine = sqa.create_engine(
+        oracle_connection_string.format(
+            username=login['username'],
+            password=login['password'],
+            hostname='db_edwprd',
+            port='1521',
+            service_name='edwprd',
+        )
+    )
+
+    df_chunks = pd.read_sql(qry, engine, chunksize=10000)
+    n = 0
+    for df in d1:
+        df['empi'] = df['empi'].astype('str')
+        if n == 0:
+            df.to_hdf(str(temp_path) + "{}.h5py".format(data_type), mode ='w', format='table', key='mbr_id')
+        else:
+            df.to_hdf(str(temp_path) + "{}.h5py".format(data_type), mode ='a', format='table', append=True, key='mbr_id')
+        n += 1
+    return str(temp_path) + "{}.h5py".format(data_type)
+
     
     
     
