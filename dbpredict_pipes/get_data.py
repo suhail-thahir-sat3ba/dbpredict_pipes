@@ -170,7 +170,6 @@ def get_sql_inputs(data_type,criteria,enrollee_qry):
         sql_inputs = {'start_date' : t_start.strftime("%d-%b-%Y").upper(),
                       'end_date' : t_end.strftime("%d-%b-%Y").upper(),
                       'cpt_codes' : cpt_codes}        
-        
     
     
     elif data_type=='specialties':
@@ -181,11 +180,12 @@ def get_sql_inputs(data_type,criteria,enrollee_qry):
         if 'loinc_codes' not in criteria:
             raise KeyError("Expected 'loinc_codes' in criteria.")
         
-        loincs = str(criteria['loinc_codes'])[1:-1]
+        loincs = criteria['loinc_codes']
+        loincs_str = str(loincs)[1:-1]
         
         sql_inputs = {'start_date' : t_start.strftime("%d-%b-%Y").upper(),
                       'end_date' : t_end.strftime("%d-%b-%Y").upper(),
-                      'loincs' : loincs}
+                      'loincs' : loincs_str}
     
     
     elif data_type=='drugs':
@@ -207,7 +207,14 @@ def get_sql_inputs(data_type,criteria,enrollee_qry):
     
     
     elif data_type=='demographics':
-        pass
+        if 'dem_columns' not in criteria:
+            raise KeyError("Expected 'dem_columns' in criteria.")
+            
+        dem_cols = criteria['dem_columns']
+        dem_cols_str = str(dem_cols)[1:-1].replace("'","")
+        
+        sql_inputs = {'end_date' : t_end.strftime("%d-%b-%y").upper(),
+                      'dem_cols' : dem_cols_str}
     
     
     sql_inputs.update({'enrollee_qry' : enrollee_qry})
@@ -241,17 +248,12 @@ def get_sql_query(data_type,sql_inputs):
                      'drugs': 'rx_frame.txt',
                      'procedures' : 'proc_frame.txt',
                      'diagnoses' : 'dx_frame.txt',
-                     'labs' : 'lab_frame.txt'}
+                     'labs' : 'lab_frame.txt',
+                     'demographics' : 'dem_frame.txt'}
     
     with open(str(query_path) + "/" + filename_dict[data_type]) as txt:
         qry = txt.read()
     qry = qry.format(**sql_inputs)
         
     return qry
-    
-    
-    
-    
-    
-    
     
