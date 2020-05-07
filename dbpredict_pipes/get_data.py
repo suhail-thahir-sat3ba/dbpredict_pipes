@@ -31,7 +31,7 @@ def get_data(data_type,model,login, criteria={}):
     Returns
     -------
     data_path : str
-        Path for parquet file containing pulled data.
+        Path for HDF file containing pulled data.
 
     '''
     
@@ -322,7 +322,7 @@ def execute_query(qry, login):
 
 def save_data(chunks, data_type):
     '''
-    Saves parquet file of data returned from query.
+    Saves HDF file of data returned from query.
 
     Parameters
     ----------
@@ -334,7 +334,7 @@ def save_data(chunks, data_type):
     Returns
     -------
     data_path : str
-        Path to saved parquet data.
+        Path to saved HDF data.
 
     '''
     data_path = str(temp_path) + "/{}.h5py".format(data_type)
