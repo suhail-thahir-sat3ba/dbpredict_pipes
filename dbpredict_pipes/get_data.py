@@ -318,11 +318,11 @@ def save_data(chunks, data_type):
     for df in chunks:
         df['empi'] = df['empi'].astype('str')
         if data_type=='specialties':
-            power_df = df[df['phys_type']=='hr']
+            power_df = df[df['phys_type']=='pwr']
             power_df = power_df.merge(ama_to_power, how='inner', left_on='specialty', right_on='power_names')
             power_df = power_df[['empi', 'AMA_Equivalent', 'serv_line_start_date']]
             
-            hr_df = df[df['phys_type']=='pwr']
+            hr_df = df[df['phys_type']=='hr']
             hr_df = hr_df.merge(ama_to_healthrules, how='inner', left_on='specialty', right_on='TXNMY_DESC')
             hr_df = hr_df[['empi', 'AMA_Equivalent', 'serv_line_start_date']]
             
