@@ -23,7 +23,8 @@ def get_data(data_type,model,login, criteria={}):
     criteria : dict, optional
         List of data elements to query (e.g. which diagnoses codes). 
         Default is {}.
-    login: dictionary with keys: 'username' and 'password'
+    login : dict
+        SQL server login credentials. Dictionary with keys: 'username' and 'password'.
     
     Returns
     -------
@@ -60,9 +61,7 @@ def get_data(data_type,model,login, criteria={}):
     qry = get_sql_query(data_type,sql_inputs)
 
     data_chunks =  execute_query(qry, login)
-    
     return_path = save_data(data_chunks, data_type)
-    
     return return_path
 
     
@@ -282,11 +281,10 @@ def get_sql_query(data_type,sql_inputs):
     qry = qry.format(**sql_inputs)
         
     return qry
-    
-    
+
 def execute_query(qry, login):
     oracle_connection_string = ('oracle+cx_oracle://{username}:{password}@' +
-    cx_Oracle.makedsn('{hostname}', '{port}', service_name='{service_name}'))
+        cx_Oracle.makedsn('{hostname}', '{port}', service_name='{service_name}'))
     
     engine = sqa.create_engine(
         oracle_connection_string.format(
@@ -311,4 +309,3 @@ def save_data(chunks, data_type)
             df.to_hdf(str(temp_path) + "/{}.h5py".format(data_type), mode ='a', format='table', append=True, key='mbr_id')
         n += 1
     return str(temp_path) + "/{}.h5py".format(data_type)
-
