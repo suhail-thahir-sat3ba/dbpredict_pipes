@@ -238,6 +238,9 @@ def get_sql_inputs(data_type,criteria,enrollee_qry):
             raise KeyError("Expected 'dem_columns' in criteria.")
             
         dem_cols = criteria['dem_columns']
+        for delete in ['age18', 'age40', 'age65']:
+            if delete in dem_cols:
+                dem_cols.remove(delete)
         dem_cols_str = str(dem_cols)[1:-1].replace("'","")
         
         sql_inputs = {'end_date' : t_end.strftime("%d-%b-%y").upper(),
