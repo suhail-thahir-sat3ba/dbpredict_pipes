@@ -1,0 +1,54 @@
+{enrollee_qry}
+,
+NP_DC_PHY_DATA_PULL as (
+SELECT * 
+FROM BI.F_CLM clm 
+	INNER JOIN BI.F_CLM_EXT EXT 
+		ON CLM.TRANSACTION_REF = EXT.TRANSACTION_REF
+    INNER JOIN bi.d_mbr
+        using (mbr_id)
+	WHERE
+		(CLM.SERV_LINE_START_DATE BETWEEN '{start_date}' AND '{end_date}')                  --Claim Reference Period
+		AND (  	(    CLM.SRC_SYS = 'HA' 
+				 AND CLM.CURR_FLAG = 'Y' 
+				 AND UPPER(CLM.CLM_STAT_CODE) = 'FINAL' 
+				 AND CLM.CNVRTD_FLAG = 'N') 
+			 OR (    CLM.SRC_SYS = 'MHS' 
+				 AND CLM.CURR_FLAG = 'Y' 
+				 AND CLM.RVSD_FROM_CLM_LINE_NBR = '0' 
+				 AND CLM.RVSD_TO_CLM_LINE_NBR = '0'
+				 AND (EXT.DEND_FLAG <> 'D' OR EXT.DEND_FLAG IS NULL )
+				)
+			)
+		AND empi IN (SELECT DISTINCT empi FROM data_pull_members)
+)
+select distinct empi, serv_line_start_date, specialty, phys_type from
+(
+--aggregate health rules to power 50
+    (select mbr_id, serv_line_start_date, bdt.txnmy_desc as specialty,
+		case when bdt.txnmy_desc is not null then 'hr' else null end as phys_type
+    from NP_DC_PHY_DATA_PULL clm
+    inner join bi.d_prov bdp
+        on bdp.prim_key = clm.prov_key
+    inner join bi.d_txnmy bdt 
+        on bdp.prim_txnmy_key=bdt.prim_key
+    where clm.src_sys = 'HA'
+        and bdt.txnmy_desc in ({health_rules_specs})
+    )
+UNION ALL
+--restric power data to top 50 (power 50)
+	(select mbr_id, serv_line_start_date, bds.spec_desc as specialty,
+		case when bds.spec_desc is not null then 'pwr' else Null end as phys_type
+	from NP_DC_PHY_DATA_PULL clm
+	inner join bi.d_prov bdp
+		on bdp.prim_key = clm.prov_key
+	inner join bi.d_spec bds 
+		on bdp.prim_spec_key=bds.prim_key
+	where clm.src_sys = 'MHS'
+		bds.spec_desc in ({power_specs})
+	)
+  
+)
+inner join BI.D_MBR MBR
+    using (mbr_id)
+;
