@@ -378,6 +378,7 @@ def save_data(chunks, data_type):
         if os.path.exists(data_path):
             os.remove(data_path)
         print("Error in saving {}.h5py.".format(data_type))
+        print("Error type: {}".format(type(e).__name__))
         print(e)
     else:
         return data_path
