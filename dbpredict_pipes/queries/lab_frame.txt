@@ -1,0 +1,49 @@
+{enrollee_qry}
+,
+LABS_DATA as (
+SELECT empi, test_rslt, abnormal_rslt, SERV_DATE, loinc_code,
+CASE WHEN ABNORMAL_RSLT is NULL or ABNORMAL_RSLT= 'N' then 'n'
+    when abnormal_rslt = 'H' then 'h'
+    when abnormal_rslt = 'L' then 'l'
+    end as rslt, 
+CASE WHEN SERV_DATE >= '01-JUL-18' THEN 'r'
+     WHEN SERV_DATE >= '01-JAN-17' AND SERV_DATE < '01-JUL-18' THEN 'm'
+     WHEN SERV_DATE < '01-JAN-17' THEN 'h'
+     ELSE 'MISSING' 
+     END AS TEMPORAL
+FROM BI.F_LAB_RSLT
+inner join BI.D_MBR
+    using (mbr_id)
+WHERE 
+	LOINC_CODE IN ({loincs})
+	AND (SERV_DATE BETWEEN '{start_date}' AND '{end_date}')
+	AND empi IN (SELECT DISTINCT empi FROM data_pull_members)
+)
+(-- test administered
+SELECT DISTINCT empi, serv_date, loinc_code, CASE WHEN 1=1 THEN "" END AS rslt
+FROM LABS_DATA
+)
+UNION ALL
+(-- test results
+SELECT DISTINCT empi, serv_date, loinc_code, rslt
+FROM LABS_DATA
+)
+UNION ALL
+(-- increasing/descreasing
+SELECT DISTINCT empi, serv_date, loinc_code, test_change AS rslt
+FROM
+	(SELECT empi, loinc_code, 
+		CASE WHEN test_rslt > last_rslt THEN 'i'
+			 WHEN test_rslt < last_rslt THEN 'd'
+			 END AS test_change
+		FROM
+			(SELECT empi, loinc_code, test_rslt, 
+				LAG(test_rslt) over(PARTITION BY empi, loinc_code ORDER BY serv_date) AS last_rslt
+			FROM LABS_DATA
+			WHERE test_rslt IS NOT NULL
+			)
+	WHERE last_rslt IS NOT NULL
+	AND last_rslt != test_rslt		-- no change in result
+	)
+)
+;

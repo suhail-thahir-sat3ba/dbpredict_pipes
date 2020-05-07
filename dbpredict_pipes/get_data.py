@@ -54,20 +54,16 @@ def get_data(data_type,model,login, criteria={}):
         raise ValueError ('{} is not a vaild model.'.format(model))
     
     
-    # get enrollees
     enrollee_qry = get_enrollee_query(model)
-    
-    # get SQL query inputs
     sql_inputs = get_sql_inputs(data_type,criteria,enrollee_qry)
-    
-    # create query
     qry = get_sql_query(data_type,sql_inputs)
-    
+
     data_chunks =  execute_query(qry, login)
     
     return_path = save_data(data_chunks, data_type)
     
     return return_path
+
     
 
 def get_enrollee_query(model):
@@ -132,12 +128,56 @@ def get_sql_inputs(data_type,criteria,enrollee_qry):
 
     '''
     
+    now = datetime.datetime.now()
+        
+    t_end = now.replace(day=1)-relativedelta(days=1)
+    t_start = t_end - relativedelta(years=5) + relativedelta(days=1)
+        
+        
     if data_type=='enrollees':
         pass
+
+
     elif data_type=='diagnoses':
-        pass
+        if 'icd9' not in criteria:
+            raise KeyError("Expected 'icd9' in criteria.")
+        if 'icd10' not in criteria:
+            raise KeyError("Expected 'icd10' in criteria.")
+        
+        icd9 = criteria['icd9']
+        icd10 = criteria['icd10']
+        
+        icd9str = str(icd9)[1:-1]
+        icd10str = str(icd10)[1:-1]
+        
+        sql_inputs = {'start_date' : t_start.strftime("%d-%b-%Y").upper(),
+                      'end_date' : t_end.strftime("%d-%b-%Y").upper(),
+                      'dx_icd9' : icd9str,
+                      'dx_icd10' : icd10str}
+    
+    
     elif data_type=='procedures':
-        pass
+        if 'exclude' not in criteria:
+            raise KeyError("Expected 'exclude' in criteria.")
+        if 'cpt_codes' not in criteria:
+            raise KeyError("Expected 'cpt_codes' in criteria.")
+        
+        ex_flag = criteria['exclude']
+        cpts = criteria['cpt_codes']
+        
+        if ex_flag:
+            cpt_codes = 'NOT IN ('
+        else:
+            cpt_codes = 'IN ('
+        
+        cpt_codes += str(cpts)[1:-1] + ")"
+        
+        sql_inputs = {'start_date' : t_start.strftime("%d-%b-%Y").upper(),
+                      'end_date' : t_end.strftime("%d-%b-%Y").upper(),
+                      'cpt_codes' : cpt_codes}        
+        
+    
+    
     elif data_type=='specialties':
         pwr50_keys = criteria['phys_codes']
         
@@ -160,10 +200,23 @@ def get_sql_inputs(data_type,criteria,enrollee_qry):
                       'start_date' : t_start.strftime("%d-%b-%Y").upper(),
                       'end_date' : t_end.strftime("%d-%b-%Y").upper()}
         
+
     elif data_type=='labs':
-        pass
+        if 'loinc_codes' not in criteria:
+            raise KeyError("Expected 'loinc_codes' in criteria.")
+        
+        loincs = str(criteria['loinc_codes'])[1:-1]
+        
+        sql_inputs = {'start_date' : t_start.strftime("%d-%b-%Y").upper(),
+                      'end_date' : t_end.strftime("%d-%b-%Y").upper(),
+                      'loincs' : loincs}
+    
+    
     elif data_type=='drugs':
-        # test to make sure dict has rx_cls and rx_ther
+        if 'rx_cls' not in criteria:
+            raise KeyError("Expected 'rx_cls' in criteria.")
+        if 'rx_ther' not in criteria:
+            raise KeyError("Expected 'rx_ther' in criteria.")
         
         rx_cls = criteria['rx_cls']
         rx_cls_str = str(rx_cls)[1:-1]
@@ -171,18 +224,15 @@ def get_sql_inputs(data_type,criteria,enrollee_qry):
         rx_ther = criteria['rx_ther']
         rx_ther_str = str(rx_ther)[1:-1]
         
-        now = datetime.datetime.now()
-        
-        t_end = now.replace(day=1)-relativedelta(days=1)
-        t_start = t_end - relativedelta(years=5) + relativedelta(days=1)
-        
         sql_inputs = {'cls_codes' : rx_cls_str,
                       'ther_codes' : rx_ther_str,
                       'start_date' : t_start.strftime("%d-%b-%Y").upper(),
                       'end_date' : t_end.strftime("%d-%b-%Y").upper()}
-        
+    
+    
     elif data_type=='demographics':
         pass
+    
     
     sql_inputs.update({'enrollee_qry' : enrollee_qry})
     
@@ -213,7 +263,10 @@ def get_sql_query(data_type,sql_inputs):
     
     filename_dict = {'enrollees' : 'enrollee_frame.txt',
                      'drugs': 'rx_frame.txt',
-                     'specialties': 'phys_frame.txt'}
+                     'specialties': 'phys_frame.txt',
+                     'procedures' : 'proc_frame.txt',
+                     'diagnoses' : 'dx_frame.txt',
+                     'labs' : 'lab_frame.txt'}
     
     with open(str(query_path) + "/" + filename_dict[data_type]) as txt:
         qry = txt.read()
