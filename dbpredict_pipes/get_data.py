@@ -63,7 +63,9 @@ def get_data(data_type,model,login, criteria={}):
     # create query
     qry = get_sql_query(data_type,sql_inputs)
     
-    return_path =  execute_query(data_type, qry, login)
+    data_chunks =  execute_query(qry, login)
+    
+    return_path = save_data(data_chunks, data_type)
     
     return return_path
     
@@ -220,7 +222,7 @@ def get_sql_query(data_type,sql_inputs):
     return qry
     
     
-def execute_query(data_type, qry, login):
+def execute_query(qry, login):
     oracle_connection_string = ('oracle+cx_oracle://{username}:{password}@' +
     cx_Oracle.makedsn('{hostname}', '{port}', service_name='{service_name}'))
     
@@ -235,15 +237,18 @@ def execute_query(data_type, qry, login):
     )
 
     df_chunks = pd.read_sql(qry, engine, chunksize=10000)
+    return df_chunks
+
+def save_data(chunks, data_type)
     n = 0
-    for df in d1:
+    for df in chunks:
         df['empi'] = df['empi'].astype('str')
         if n == 0:
-            df.to_hdf(str(temp_path) + "{}.h5py".format(data_type), mode ='w', format='table', key='mbr_id')
+            df.to_hdf(str(temp_path) + "/{}.h5py".format(data_type), mode ='w', format='table', key='mbr_id')
         else:
-            df.to_hdf(str(temp_path) + "{}.h5py".format(data_type), mode ='a', format='table', append=True, key='mbr_id')
+            df.to_hdf(str(temp_path) + "/{}.h5py".format(data_type), mode ='a', format='table', append=True, key='mbr_id')
         n += 1
-    return str(temp_path) + "{}.h5py".format(data_type)
+    return str(temp_path) + "/{}.h5py".format(data_type)
 
     
     
