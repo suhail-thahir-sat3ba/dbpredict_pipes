@@ -100,8 +100,27 @@ def get_enrollee_query(model):
         model_path = str(query_path) + '/np_dc.txt'
         
     elif model == 'd_c':
-        # get_enrollee_qry('np_dc')
-        pass                    # SET model_path HERE
+        now = datetime.datetime.now()
+        t_end = now.replace(day=1)-relativedelta(days=1)        
+        t_start = t_end - relativedelta(months=12)
+
+        t = [now - relativedelta(months=i) for i in range(1,7)]
+               
+        modeldict = {'t6m' : str(t[5].month).zfill(2), 't6y' : t[5].year,
+                     't5m' : str(t[4].month).zfill(2), 't5y' : t[4].year,
+                     't4m' : str(t[3].month).zfill(2), 't4y' : t[3].year,
+                     't3m' : str(t[2].month).zfill(2), 't3y' : t[2].year,
+                     't2m' : str(t[1].month).zfill(2), 't2y' : t[1].year,
+                     't1m' : str(t[0].month).zfill(2), 't1y' : t[0].year,
+                     't_end' : t_end.strftime("%d-%b-%y").upper(),
+                     't_start': t_start.strftime("%d-%b-%y").upper(),
+                     'tend_yyyymm': str(t_end.year) +str(t_end.month).zfill(2),
+                     'tstart_yyyymm':str(t_start.year) + str(t_start.month
+                                                            ).zfill(2)
+                     }
+        
+        model_path = str(query_path) + '/d_c.txt'
+        
     
     with open(model_path) as txt:
         qry = txt.read()
