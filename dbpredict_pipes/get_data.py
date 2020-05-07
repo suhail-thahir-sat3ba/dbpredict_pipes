@@ -1,4 +1,5 @@
-from ._globals import __queries__ as query_path, __xwalks__ as xwalk_path, __temp__ as temp_path
+from ._globals import __queries__ as query_path, __xwalks__ as xwalk_path
+from ._globals import __temp__ as temp_path
 import datetime
 from dateutil.relativedelta import relativedelta
 import sqlalchemy as sqa
@@ -9,7 +10,7 @@ import pandas as pd
 
 def get_data(data_type,model,login, criteria={}):
     '''
-    DESCRIPTION
+    Retrieve data from SQL server for a particular model based on criteria.
 
     Parameters
     ----------
@@ -20,15 +21,16 @@ def get_data(data_type,model,login, criteria={}):
     model : str
         String specifying for which model data is pulled (i.e. for which 
         enrollees to make predictions.)
+    login : dict
+        SQL server login credentials. Dictionary with keys: 'username' and 
+        'password'.
     criteria : dict, optional
         List of data elements to query (e.g. which diagnoses codes). 
         Default is {}.
-    login : dict
-        SQL server login credentials. Dictionary with keys: 'username' and 'password'.
     
     Returns
     -------
-    path : str
+    data_path : str
         Path for parquet file containing pulled data.
 
     '''
@@ -61,9 +63,8 @@ def get_data(data_type,model,login, criteria={}):
     qry = get_sql_query(data_type,sql_inputs)
 
     data_chunks =  execute_query(qry, login)
-    return_path = save_data(data_chunks, data_type)
-    return return_path
-
+    data_path = save_data(data_chunks, data_type)
+    return data_path
     
 
 def get_enrollee_query(model):
@@ -113,18 +114,21 @@ def get_enrollee_query(model):
 
 def get_sql_inputs(data_type,criteria,enrollee_qry):
     '''
-    DESCRIPTION
+    Parses criteria to create snippets for SQL query.
 
     Parameters
     ----------
-    data_type : TYPE
-        DESCRIPTION.
-    criteria : TYPE
-        DESCRIPTION.
+    data_type : str
+        String specifying which data type to pull.
+    criteria : dict
+        List of data elements to query (e.g. which diagnoses codes).
+    enrollee_qry : str
+        Query snipet to select enrollees for model.
 
     Returns
     -------
-    None.
+    sql_inputs : dict
+        Dictionary with snippets for SQL query.
 
     '''
     
@@ -252,7 +256,7 @@ def get_sql_query(data_type,sql_inputs):
 
     Parameters
     ----------
-    data_type : string
+    data_type : str
         String specifying which data type to pull.
     sql_inputs : dict
         Dictionary of inputs to the SQL query frame.
@@ -283,6 +287,23 @@ def get_sql_query(data_type,sql_inputs):
     return qry
 
 def execute_query(qry, login):
+    '''
+    Executes SQL query.
+
+    Parameters
+    ----------
+    qry : str
+        SQL query to execute.
+    login : dict
+        SQL server login credentials. Dictionary with keys: 'username' and 
+        'password'.
+
+    Returns
+    -------
+    df_chunks : iterator
+        Iterable data chucks from query.
+
+    '''
     oracle_connection_string = ('oracle+cx_oracle://{username}:{password}@' +
         cx_Oracle.makedsn('{hostname}', '{port}', service_name='{service_name}'))
     
@@ -299,13 +320,31 @@ def execute_query(qry, login):
     df_chunks = pd.read_sql(qry, engine, chunksize=10000)
     return df_chunks
 
-def save_data(chunks, data_type)
+def save_data(chunks, data_type):
+    '''
+    Saves parquet file of data returned from query.
+
+    Parameters
+    ----------
+    chunks : iterator
+        Iterable data chucks from query.
+    data_type : str
+        String specifying which data type to pull.
+
+    Returns
+    -------
+    data_path : str
+        Path to saved parquet data.
+
+    '''
+    data_path = str(temp_path) + "/{}.h5py".format(data_type)
     n = 0
     for df in chunks:
         df['empi'] = df['empi'].astype('str')
         if n == 0:
-            df.to_hdf(str(temp_path) + "/{}.h5py".format(data_type), mode ='w', format='table', key='mbr_id')
+            df.to_hdf(data_path, mode ='w', format='table', key='mbr_id')
         else:
-            df.to_hdf(str(temp_path) + "/{}.h5py".format(data_type), mode ='a', format='table', append=True, key='mbr_id')
+            df.to_hdf(data_path, mode ='a', format='table', append=True, 
+                      key='mbr_id')
         n += 1
-    return str(temp_path) + "/{}.h5py".format(data_type)
+    return data_path
