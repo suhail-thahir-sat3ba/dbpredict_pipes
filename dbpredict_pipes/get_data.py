@@ -201,7 +201,7 @@ def get_sql_inputs(data_type,criteria,enrollee_qry):
         pass
     
     
-    sql_inputs = sql_inputs.update({'enrollee_qry' : enrollee_qry})
+    sql_inputs.update({'enrollee_qry' : enrollee_qry})
     
     return sql_inputs
     
