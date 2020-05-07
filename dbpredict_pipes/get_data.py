@@ -134,6 +134,11 @@ def get_sql_inputs(data_type,criteria,enrollee_qry):
 
 
     elif data_type=='diagnoses':
+        if 'icd9' not in criteria:
+            raise KeyError("Expected 'icd9' in criteria.")
+        if 'icd10' not in criteria:
+            raise KeyError("Expected 'icd10' in criteria.")
+        
         icd9 = criteria['icd9']
         icd10 = criteria['icd10']
         
@@ -147,6 +152,10 @@ def get_sql_inputs(data_type,criteria,enrollee_qry):
     
     
     elif data_type=='procedures':
+        if 'exclude' not in criteria:
+            raise KeyError("Expected 'exclude' in criteria.")
+        if 'cpt_codes' not in criteria:
+            raise KeyError("Expected 'cpt_codes' in criteria.")
         
         ex_flag = criteria['exclude']
         cpts = criteria['cpt_codes']
@@ -180,7 +189,10 @@ def get_sql_inputs(data_type,criteria,enrollee_qry):
     
     
     elif data_type=='drugs':
-        # test to make sure dict has rx_cls and rx_ther
+        if 'rx_cls' not in criteria:
+            raise KeyError("Expected 'rx_cls' in criteria.")
+        if 'rx_ther' not in criteria:
+            raise KeyError("Expected 'rx_ther' in criteria.")
         
         rx_cls = criteria['rx_cls']
         rx_cls_str = str(rx_cls)[1:-1]
@@ -192,12 +204,13 @@ def get_sql_inputs(data_type,criteria,enrollee_qry):
                       'ther_codes' : rx_ther_str,
                       'start_date' : t_start.strftime("%d-%b-%Y").upper(),
                       'end_date' : t_end.strftime("%d-%b-%Y").upper()}
-        
+    
+    
     elif data_type=='demographics':
         pass
     
     
-    sql_inputs = sql_inputs.update({'enrollee_qry' : enrollee_qry})
+    sql_inputs.update({'enrollee_qry' : enrollee_qry})
     
     return sql_inputs
     
