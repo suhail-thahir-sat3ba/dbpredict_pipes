@@ -337,7 +337,9 @@ def save_data(chunks, data_type):
 
     '''
     data_path = str(temp_path) + "/{}.h5py".format(data_type)
-    n = 0
+        
+    columns_names_map = rename_columns(data_type)
+
     if data_type == 'specialties':
         #retrieve ama and power specialties xwalk
         ama_power_path = str(xwalk_path) + '/power_to_AMA.pickle'
@@ -350,9 +352,9 @@ def save_data(chunks, data_type):
         #retrieve AMA to key xwalk
         key_ama_path = str(xwalk_path) + '/AMA_spec.pickle' 
         key_to_ama = pd.read_pickle(key_ama_path)
-        
-    
+            
     try:
+      n= 0
         for df in chunks:
             df['empi'] = df['empi'].astype('str')
             if data_type=='specialties':
@@ -382,4 +384,57 @@ def save_data(chunks, data_type):
         print(e)
     else:
         return data_path
+
+def rename_columns(data_type):
+    '''return a dictionary mapping imported column names to dbpredict column 
+    names
+    '''
+    demographics = {'empi': 'id',
+                    'enrolled_mons': 'DEM_enrolledmons',
+                    'pcpmons': 'DEM_pcpmons',
+                    'rxmons': 'DEM_rxmons',
+                    'pcpind': 'DEM_pcpind',
+                    'rxind': 'DEM_rxind',
+                    'male': 'DEM_male',
+                    'age': 'DEM_age',
+                    'lobcom': 'DEM_lobcom',
+                    'lobmcr': 'DEM_lobmcr',
+                    'lobmcd': 'DEM_lobmcd'
+                     }
     
+    diagnoses = {'empi': 'id',
+                 'dx_code': 'code',
+                 'serv_line_start_date': 'svcdate',
+                 'diag_vrsn_ind' : 'category'}
+    
+    procedures = {'empi': 'id',
+                  'cpt_code': 'code',
+                  'serv_line_start_date': 'svcdate'} 
+    
+    specialties = {'empi': 'id',
+                   'AMA_key': 'code',
+                   'serv_line_start_date': 'svcdate'}
+    
+    labs = {'empi': 'id',
+            'loinc_code': 'code',
+            'rslt': 'category',
+            'serv_date': 'svcdate'} 
+    
+    drugs = {'empi': 'id',
+             'gpi_class': 'code',
+             'serv_date': 'svcdate',
+             'type' : 'category'
+             }
+    
+    enrollees ={'empi': 'id'}
+    
+    column_dict= {'demographics': demographics,
+                  'diagnoses' : diagnoses,
+                  'procedures': procedures,
+                  'specialties': specialties,
+                  'labs': labs,
+                  'drugs': drugs,
+                  'enrollees': enrollees}
+    
+    
+    return column_dict[data_type]

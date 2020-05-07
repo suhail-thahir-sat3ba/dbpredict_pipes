@@ -1,7 +1,8 @@
 {enrollee_qry}
-select empi, gpi_class, count(gpi_class) as prescs from
+select empi, gpi_class, serv_date, type from
 (   --GET GPI SUB CLASS level medication utilization ~790 CATEGORIES
-    (select mbr_id, gpi_class, serv_date
+    (select mbr_id, gpi_class, serv_date, 
+		case when mbr_id is not Null then 'cls' else Null end as type
         from
         (select gpi_code, SUBSTR(GPI_CODE, 1, 6) as gpi_class, mbr_id, serv_date
             FROM BI.F_RX_CLM RX 
@@ -13,7 +14,8 @@ select empi, gpi_class, count(gpi_class) as prescs from
     )
     UNION ALL
     (--Get GPI Therapeutic Class
-    select mbr_id, therapeutic_class as gpi_class, serv_date
+    select mbr_id, therapeutic_class as gpi_class, serv_date,
+		case when mbr_id is not Null then 'ther' else Null end as type
         from
         (
         select mbr_id, 
@@ -45,5 +47,4 @@ select empi, gpi_class, count(gpi_class) as prescs from
 inner join BI.D_MBR MBR
     using (mbr_id)
 where empi in (select distinct empi from data_pull_members)
-group by empi, gpi_class
 ;
