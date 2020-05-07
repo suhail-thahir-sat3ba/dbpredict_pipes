@@ -257,6 +257,7 @@ def get_sql_inputs(data_type,criteria,enrollee_qry):
             raise KeyError("Expected 'dem_columns' in criteria.")
             
         dem_cols = criteria['dem_columns']
+
         dem_cols_str = str(dem_cols)[1:-1].replace("'","")
         
         sql_inputs = {'end_date' : t_end.strftime("%d-%b-%y").upper(),
