@@ -1,4 +1,4 @@
-{enrollee_restrictions}
+{enrollee_qry}
 ,
 NP_DC_PHY_DATA_PULL as (
 SELECT * 
