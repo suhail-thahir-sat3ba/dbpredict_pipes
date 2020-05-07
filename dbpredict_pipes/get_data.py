@@ -327,8 +327,8 @@ def save_data(chunks, data_type):
             hr_df = hr_df[['empi', 'AMA_Equivalent', 'serv_line_start_date']]
             
             df = hr_df.append(power_df)
-            df =df.merge(key_to_ama, how='inner', left_on='AMA_Equivalent', right_on='pwr_key')
-            df = df[['empi', 'pwr_key', 'serv_line_start_date']]
+            df =df.merge(key_to_ama, how='inner', left_on='AMA_Equivalent', right_on='AMA_key')
+            df = df[['empi', 'AMA_key', 'serv_line_start_date']]
             
         if n == 0:
             df.to_hdf(str(temp_path) + "/{}.h5py".format(data_type), mode ='w', format='table', key='mbr_id')
