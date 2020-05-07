@@ -5,6 +5,7 @@ import sqlalchemy as sqa
 import pandas as pd
 from sqlalchemy.dialects import oracle
 import cx_Oracle
+import pandas as pd
 
 def get_data(data_type,model,login, criteria={}):
     '''
@@ -181,16 +182,16 @@ def get_sql_inputs(data_type,criteria,enrollee_qry):
     elif data_type=='specialties':
         pwr50_keys = criteria['phys_codes']
         
-        key_ama_path = str(xwalk_path) + 'AMA_spec.pickle' 
+        key_ama_path = str(xwalk_path) + '/AMA_spec.pickle' 
         key_to_ama = pd.read_pickle(key_ama_path)
         ama_specs = list(key_to_ama[key_to_ama['pwr_key'].isin(pwr50_keys)]['AMA_Equivalent'])
         
-        ama_power_path = str(xwalk_path) + 'power_to_AMA.pickle'
+        ama_power_path = str(xwalk_path) + '/power_to_AMA.pickle'
         ama_to_power = pd.read_pickle(ama_power_path)
         power_specs = list(ama_to_power[ama_to_power['AMA_Equivalent'].isin(ama_specs)]['power top 50'])
         power_str = str(power_specs)[1:-1]
         
-        ama_hr_path = str(xwalk_path) + 'healthrules_to_AMA.pickle'
+        ama_hr_path = str(xwalk_path) + '/healthrules_to_AMA.pickle'
         ama_to_healthrules = pd.read_pickle(ama_hr_path)
         hr_specs = list(ama_to_healthrules[ama_to_healthrules['AMA_Equivalent'].isin(ama_specs)]['TXNMY_DESC'])
         hr_str = str(hr_specs)[1:-1]
