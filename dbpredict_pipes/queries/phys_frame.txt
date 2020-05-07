@@ -51,4 +51,3 @@ UNION ALL
 )
 inner join BI.D_MBR MBR
     using (mbr_id)
-;

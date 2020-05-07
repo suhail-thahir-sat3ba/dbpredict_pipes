@@ -31,4 +31,3 @@ FROM CLAIMS_DATA
 INNER JOIN BI.D_MBR
 	USING (mbr_id)
 WHERE cpt_code {cpt_codes}
-;

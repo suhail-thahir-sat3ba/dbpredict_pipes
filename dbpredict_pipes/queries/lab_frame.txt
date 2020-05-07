@@ -46,4 +46,3 @@ FROM
 	AND last_rslt != test_rslt		-- no change in result
 	)
 )
-;

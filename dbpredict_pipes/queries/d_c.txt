@@ -41,7 +41,7 @@ with active_roster AS
             inner join bi.d_mbr
                 using(mbr_id)
             WHERE CLNDR_MONTH = {t1m} AND CLNDR_YEAR = {t1y}
-            and floor((to_date('{today}') - mbr_DOB) / 365.25) >= 18) t1
+            and floor((to_date('{t_end}') - mbr_DOB) / 365.25) >= 18) t1
         ON 	t6.empi = t1.empi
     )
 ),
@@ -1988,4 +1988,4 @@ DM_CMP_COND AS
     FROM DM_CMP_IND_ADD BASE
 )
 select distinct empi from DM_CMP_COND
-where cond_ind = 0;
+where cond_ind = 0

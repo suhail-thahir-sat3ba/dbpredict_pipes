@@ -155,7 +155,7 @@ def get_sql_inputs(data_type,criteria,enrollee_qry):
     t_end = now.replace(day=1)-relativedelta(days=1)
     t_start = t_end - relativedelta(years=5) + relativedelta(days=1)
         
-        
+    sql_inputs = {}    
     if data_type=='enrollees':
         pass
 
