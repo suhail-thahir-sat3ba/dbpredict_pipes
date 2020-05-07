@@ -1,0 +1,63 @@
+{enrollee_qry}
+,
+lob_roster as(
+SELECT MBR.EMPI,ENRL.ENRLM_START_DATE,ENRL.ENRLM_END_DATE, 
+    CASE WHEN PROD_CATG_CODE IN ('10', '43', 'Commercial') THEN 'COMMERCIAL'
+		 WHEN PROD_CATG_CODE IN ('80', 'State') THEN 'MEDICAID'
+		 WHEN PROD_CATG_CODE IN ('70', 'Medicare') THEN 'MEDICARE'
+		 WHEN PROD_CATG_CODE IN ('90', 'Self-Funded IHSFS') THEN 'COMMERCIAL'
+		 ELSE 'OTHER' END 	
+		 AS LOB
+FROM BI.D_PROD PROD
+INNER JOIN BI.F_ENRL ENRL
+    ON PROD.BEN_PLAN_KEY = ENRL.BEN_PLAN_KEY
+INNER JOIN BI.D_MBR MBR
+    ON MBR.PRIM_KEY = ENRL.MBR_KEY
+WHERE MBR.EMPI IN (SELECT empi FROM data_pull_members)
+)
+SELECT empi, {dem_cols}
+FROM
+	(SELECT mbr.empi,
+		sum(mbr_months) as enrolledmons, 
+		sum(pcp_months) as pcpmons,
+		sum(rx_months) as rxmons,
+		case when sum(pcp_months) > 0 then 1 else 0 end as pcpind,
+		case when sum(rx_months) > 0 then 1 else 0 end as rxind,
+		case when mbr.gender_code = 'M' then 1 else 0 end as male,
+		floor((to_date('{end_date}') - mbr.DOB) / 365.25) as age
+	FROM 
+		(SELECT mm.mbr_id, 
+			SUM(mm.MM_COUNT) as mbr_months, 
+			SUM(case when mm.PCP_Index = 1 then 1 else 0 end) as pcp_months, 
+			SUM(case when mm.RX_Coverage = 'Y' then 1 else 0 end) as rx_months 
+		FROM IHA_INF.MM_DETAIL_R11 mm
+		GROUP BY mbr_id
+		) mem_mons
+		INNER JOIN BI.D_MBR mbr
+			ON mbr.mbr_id = mem_mons.mbr_id
+		WHERE empi in (select empi from data_pull_members)
+		GROUP BY mbr.empi, mbr.gender_code, mbr.DOB
+	)
+	INNER JOIN
+	(SELECT empi, 
+		max(lobcom) as lobcom, 
+		max(lobmcr) as lobmcr,
+		max(lobmcd) as lobmcd
+	FROM
+		(SELECT a.empi, 
+			case when a.LOB = 'COMMERCIAL' then 1 else 0 end as lobcom,
+			case when a.LOB = 'MEDICARE' then 1 else 0 end as lobmcr,
+			case when a.LOB = 'MEDICAID' then 1 else 0 end as lobmcd
+		FROM lob_roster a
+		INNER JOIN 
+		(SELECT empi, 
+			max(ENRLM_END_DATE) AS max_end
+		FROM lob_roster 
+		GROUP BY empi) b
+			ON (a.empi = b.empi AND a.ENRLM_END_DATE = b.max_end)
+		GROUP BY a.empi, a.LOB
+		)
+	GROUP BY empi
+    )
+	USING (empi)
+;
