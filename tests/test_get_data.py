@@ -105,5 +105,9 @@ def lab_clean():
                      }
     return lab_clean
 
+def test_sql_inputs_demographics(dem_clean):
+    enrollee_qry = get_data.get_enrollee_query('np_dc')
+    
+    
 
 
