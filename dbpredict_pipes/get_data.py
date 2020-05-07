@@ -5,6 +5,7 @@ from dateutil.relativedelta import relativedelta
 import sqlalchemy as sqa
 import pandas as pd
 import cx_Oracle
+import os
 
 def get_data(data_type,model,login, criteria={}):
     '''
@@ -351,25 +352,33 @@ def save_data(chunks, data_type):
         key_to_ama = pd.read_pickle(key_ama_path)
         
     
-    for df in chunks:
-        df['empi'] = df['empi'].astype('str')
-        if data_type=='specialties':
-            power_df = df[df['phys_type']=='pwr']
-            power_df = power_df.merge(ama_to_power, how='inner', left_on='specialty', right_on='power_names')
-            power_df = power_df[['empi', 'AMA_Equivalent', 'serv_line_start_date']]
-            
-            hr_df = df[df['phys_type']=='hr']
-            hr_df = hr_df.merge(ama_to_healthrules, how='inner', left_on='specialty', right_on='TXNMY_DESC')
-            hr_df = hr_df[['empi', 'AMA_Equivalent', 'serv_line_start_date']]
-            
-            df = hr_df.append(power_df)
-            df =df.merge(key_to_ama, how='inner', left_on='AMA_Equivalent', right_on='AMA_key')
-            df = df[['empi', 'AMA_key', 'serv_line_start_date']]
-            
-        if n == 0:
-            df.to_hdf(data_path, mode ='w', format='table', key='mbr_id')
-        else:
-            df.to_hdf(data_path, mode ='a', format='table', append=True, 
-                      key='mbr_id')
-        n += 1
-    return data_path
+    try:
+        for df in chunks:
+            df['empi'] = df['empi'].astype('str')
+            if data_type=='specialties':
+                power_df = df[df['phys_type']=='pwr']
+                power_df = power_df.merge(ama_to_power, how='inner', left_on='specialty', right_on='power_names')
+                power_df = power_df[['empi', 'AMA_Equivalent', 'serv_line_start_date']]
+                
+                hr_df = df[df['phys_type']=='hr']
+                hr_df = hr_df.merge(ama_to_healthrules, how='inner', left_on='specialty', right_on='TXNMY_DESC')
+                hr_df = hr_df[['empi', 'AMA_Equivalent', 'serv_line_start_date']]
+                
+                df = hr_df.append(power_df)
+                df =df.merge(key_to_ama, how='inner', left_on='AMA_Equivalent', right_on='AMA_key')
+                df = df[['empi', 'AMA_key', 'serv_line_start_date']]
+                
+            if n == 0:
+                df.to_hdf(data_path, mode ='w', format='table', key='mbr_id')
+            else:
+                df.to_hdf(data_path, mode ='a', format='table', append=True, 
+                          key='mbr_id')
+            n += 1
+    except Exception as e:
+        if os.path.exists(data_path):
+            os.remove(data_path)
+        print("Error in saving {}.h5py.".format(data_type))
+        print(e)
+    else:
+        return data_path
+    
