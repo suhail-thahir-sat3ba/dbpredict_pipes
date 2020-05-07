@@ -4,9 +4,7 @@ import datetime
 from dateutil.relativedelta import relativedelta
 import sqlalchemy as sqa
 import pandas as pd
-from sqlalchemy.dialects import oracle
 import cx_Oracle
-import pandas as pd
 
 def get_data(data_type,model,login, criteria={}):
     '''
