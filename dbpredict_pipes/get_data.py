@@ -1,11 +1,11 @@
-from ._globals import __queries__ as query_path, __xwalks__ as xwalk_path
-from ._globals import __temp__ as temp_path
-import datetime
-from dateutil.relativedelta import relativedelta
-import sqlalchemy as sqa
-import pandas as pd
-import cx_Oracle
-import os
+# from ._globals import __queries__ as query_path, __xwalks__ as xwalk_path
+# from ._globals import __temp__ as temp_path
+# import datetime
+# from dateutil.relativedelta import relativedelta
+# import sqlalchemy as sqa
+# import pandas as pd
+# import cx_Oracle
+# import os
 
 def get_data(data_type,model,login, criteria={}):
     '''

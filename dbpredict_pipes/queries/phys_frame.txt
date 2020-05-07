@@ -45,7 +45,7 @@ UNION ALL
 	inner join bi.d_spec bds 
 		on bdp.prim_spec_key=bds.prim_key
 	where clm.src_sys = 'MHS'
-		bds.spec_desc in ({power_specs})
+		and bds.spec_desc in ({power_specs})
 	)
   
 )

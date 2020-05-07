@@ -1,8 +1,8 @@
 {enrollee_qry}
 ,
 CLAIMS_DATA as (
-select mbr_id, serv_line_start_date, CLM_PRIN_DIAG_CODE, CLM_PRIN_DIAG_CODE_1,
-	CLM_PRIN_DIAG_CODE_2, CLM_PRIN_DIAG_CODE_3
+select mbr_id, serv_line_start_date, CLM_PRIN_DIAG_CODE, CLM_OTHER_DIAG_CODE_1,
+	CLM_OTHER_DIAG_CODE_2, CLM_OTHER_DIAG_CODE_3, diag_vrsn_ind
 from (
 SELECT * 
 FROM BI.F_CLM clm 
@@ -27,7 +27,7 @@ FROM BI.F_CLM clm
         )
 )
 SELECT DISTINCT empi, dx_code, SERV_LINE_START_DATE, diag_vrsn_ind FROM
-        (select mbr_id, replace(dx_code, '.',''), diag_vrsn_ind, SERV_LINE_START_DATE
+        (select mbr_id, replace(dx_code, '.','') as dx_code, diag_vrsn_ind, SERV_LINE_START_DATE
         from
             (select mbr_id, serv_line_start_date, diag_vrsn_ind, CLM_PRIN_DIAG_CODE as dx_code
             from CLAIMS_DATA
