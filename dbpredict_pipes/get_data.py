@@ -182,7 +182,7 @@ def get_sql_inputs(data_type,criteria,enrollee_qry):
         
         key_ama_path = str(xwalk_path) + '/AMA_spec.pickle' 
         key_to_ama = pd.read_pickle(key_ama_path)
-        ama_specs = list(key_to_ama[key_to_ama['pwr_key'].isin(ama_keys)]['AMA_Equivalent'])
+        ama_specs = list(key_to_ama[key_to_ama['AMA_key'].isin(ama_keys)]['AMA_Equivalent'])
         
         ama_power_path = str(xwalk_path) + '/power_to_AMA.pickle'
         ama_to_power = pd.read_pickle(ama_power_path)
