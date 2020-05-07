@@ -112,7 +112,7 @@ def get_enrollee_query(model):
                      'today' : now.strftime("%d-%b-%y").upper(),
                      'year_ago': (now - relativedelta(months=12)
                                   ).strftime("%d-%b-%y").upper(),
-                     'today_yyyymm': str(now.year) +str(now.month).zfill(2) 
+                     'today_yyyymm': str(now.year) +str(now.month).zfill(2) ,
                      'yearago_yyyymm':  str((now - relativedelta(months=12)
                                              ).year) + str((now - relativedelta
                                                 (months=12)).month).zfill(2)
