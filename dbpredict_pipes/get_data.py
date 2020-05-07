@@ -1,8 +1,13 @@
-from ._globals import __queries__ as query_path
+from ._globals import __queries__ as query_path, __xwalks__ as xwalk_path, __temp__ as temp_path
 import datetime
 from dateutil.relativedelta import relativedelta
+import sqlalchemy as sqa
+import pandas as pd
+from sqlalchemy.dialects import oracle
+import cx_Oracle
+import pandas as pd
 
-def get_data(data_type,model,criteria={}):
+def get_data(data_type,model,login, criteria={}):
     '''
     DESCRIPTION
 
@@ -18,6 +23,7 @@ def get_data(data_type,model,criteria={}):
     criteria : dict, optional
         List of data elements to query (e.g. which diagnoses codes). 
         Default is {}.
+    login: dictionary with keys: 'username' and 'password'
     
     Returns
     -------
@@ -52,13 +58,13 @@ def get_data(data_type,model,criteria={}):
     enrollee_qry = get_enrollee_query(model)
     sql_inputs = get_sql_inputs(data_type,criteria,enrollee_qry)
     qry = get_sql_query(data_type,sql_inputs)
+
+    data_chunks =  execute_query(qry, login)
     
-    # execute query
-    # save parquet
-    # return path
+    return_path = save_data(data_chunks, data_type)
     
-    path = ''
-    return path
+    return return_path
+
     
 
 def get_enrollee_query(model):
@@ -173,9 +179,28 @@ def get_sql_inputs(data_type,criteria,enrollee_qry):
     
     
     elif data_type=='specialties':
-        pass
-    
-    
+        ama_keys = criteria['phys_codes']
+        
+        key_ama_path = str(xwalk_path) + '/AMA_spec.pickle' 
+        key_to_ama = pd.read_pickle(key_ama_path)
+        ama_specs = list(key_to_ama[key_to_ama['pwr_key'].isin(ama_keys)]['AMA_Equivalent'])
+        
+        ama_power_path = str(xwalk_path) + '/power_to_AMA.pickle'
+        ama_to_power = pd.read_pickle(ama_power_path)
+        power_specs = list(ama_to_power[ama_to_power['AMA_Equivalent'].isin(ama_specs)]['power_names'])
+        power_str = str(power_specs)[1:-1]
+        
+        ama_hr_path = str(xwalk_path) + '/healthrules_to_AMA.pickle'
+        ama_to_healthrules = pd.read_pickle(ama_hr_path)
+        hr_specs = list(ama_to_healthrules[ama_to_healthrules['AMA_Equivalent'].isin(ama_specs)]['TXNMY_DESC'])
+        hr_str = str(hr_specs)[1:-1]
+        
+        sql_inputs = {'power_specs': power_str,
+                      'health_rules_specs': hr_str,
+                      'start_date' : t_start.strftime("%d-%b-%Y").upper(),
+                      'end_date' : t_end.strftime("%d-%b-%Y").upper()}
+        
+
     elif data_type=='labs':
         if 'loinc_codes' not in criteria:
             raise KeyError("Expected 'loinc_codes' in criteria.")
@@ -246,6 +271,7 @@ def get_sql_query(data_type,sql_inputs):
     
     filename_dict = {'enrollees' : 'enrollee_frame.txt',
                      'drugs': 'rx_frame.txt',
+                     'specialties': 'phys_frame.txt',
                      'procedures' : 'proc_frame.txt',
                      'diagnoses' : 'dx_frame.txt',
                      'labs' : 'lab_frame.txt',
@@ -257,3 +283,32 @@ def get_sql_query(data_type,sql_inputs):
         
     return qry
     
+    
+def execute_query(qry, login):
+    oracle_connection_string = ('oracle+cx_oracle://{username}:{password}@' +
+    cx_Oracle.makedsn('{hostname}', '{port}', service_name='{service_name}'))
+    
+    engine = sqa.create_engine(
+        oracle_connection_string.format(
+            username=login['username'],
+            password=login['password'],
+            hostname='db_edwprd',
+            port='1521',
+            service_name='edwprd',
+        )
+    )
+
+    df_chunks = pd.read_sql(qry, engine, chunksize=10000)
+    return df_chunks
+
+def save_data(chunks, data_type)
+    n = 0
+    for df in chunks:
+        df['empi'] = df['empi'].astype('str')
+        if n == 0:
+            df.to_hdf(str(temp_path) + "/{}.h5py".format(data_type), mode ='w', format='table', key='mbr_id')
+        else:
+            df.to_hdf(str(temp_path) + "/{}.h5py".format(data_type), mode ='a', format='table', append=True, key='mbr_id')
+        n += 1
+    return str(temp_path) + "/{}.h5py".format(data_type)
+
