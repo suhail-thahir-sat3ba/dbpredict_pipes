@@ -182,7 +182,7 @@ def get_sql_inputs(data_type,criteria,enrollee_qry):
         
         key_ama_path = str(xwalk_path) + '/AMA_spec.pickle' 
         key_to_ama = pd.read_pickle(key_ama_path)
-        ama_specs = list(key_to_ama[key_to_ama['pwr_key'].isin(ama_keys)]['AMA_Equivalent'])
+        ama_specs = list(key_to_ama[key_to_ama['AMA_key'].isin(ama_keys)]['AMA_Equivalent'])
         
         ama_power_path = str(xwalk_path) + '/power_to_AMA.pickle'
         ama_to_power = pd.read_pickle(ama_power_path)
@@ -299,10 +299,37 @@ def execute_query(qry, login):
     df_chunks = pd.read_sql(qry, engine, chunksize=10000)
     return df_chunks
 
-def save_data(chunks, data_type)
+def save_data(chunks, data_type):
     n = 0
+    if data_type == 'specialties':
+        #retrieve ama and power specialties xwalk
+        ama_power_path = str(xwalk_path) + '/power_to_AMA.pickle'
+        ama_to_power = pd.read_pickle(ama_power_path)
+        
+        #retrieve ama and health rules specialties crosswalk
+        ama_hr_path = str(xwalk_path) + '/healthrules_to_AMA.pickle'
+        ama_to_healthrules = pd.read_pickle(ama_hr_path)
+        
+        #retrieve AMA to key xwalk
+        key_ama_path = str(xwalk_path) + '/AMA_spec.pickle' 
+        key_to_ama = pd.read_pickle(key_ama_path)
+        
+    
     for df in chunks:
         df['empi'] = df['empi'].astype('str')
+        if data_type=='specialties':
+            power_df = df[df['phys_type']=='pwr']
+            power_df = power_df.merge(ama_to_power, how='inner', left_on='specialty', right_on='power_names')
+            power_df = power_df[['empi', 'AMA_Equivalent', 'serv_line_start_date']]
+            
+            hr_df = df[df['phys_type']=='hr']
+            hr_df = hr_df.merge(ama_to_healthrules, how='inner', left_on='specialty', right_on='TXNMY_DESC')
+            hr_df = hr_df[['empi', 'AMA_Equivalent', 'serv_line_start_date']]
+            
+            df = hr_df.append(power_df)
+            df =df.merge(key_to_ama, how='inner', left_on='AMA_Equivalent', right_on='AMA_key')
+            df = df[['empi', 'AMA_key', 'serv_line_start_date']]
+            
         if n == 0:
             df.to_hdf(str(temp_path) + "/{}.h5py".format(data_type), mode ='w', format='table', key='mbr_id')
         else:
