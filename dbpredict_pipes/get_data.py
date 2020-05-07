@@ -284,7 +284,7 @@ def get_sql_query(data_type,sql_inputs):
 
 def execute_query(qry, login):
     oracle_connection_string = ('oracle+cx_oracle://{username}:{password}@' +
-    cx_Oracle.makedsn('{hostname}', '{port}', service_name='{service_name}'))
+        cx_Oracle.makedsn('{hostname}', '{port}', service_name='{service_name}'))
     
     engine = sqa.create_engine(
         oracle_connection_string.format(
