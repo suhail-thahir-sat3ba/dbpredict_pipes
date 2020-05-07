@@ -169,10 +169,10 @@ def get_sql_inputs(data_type,criteria,enrollee_qry):
     
     
     elif data_type=='labs':
-        if 'loincs' not in criteria:
-            raise KeyError("Expected 'loincs' in criteria.")
+        if 'loinc_codes' not in criteria:
+            raise KeyError("Expected 'loinc_codes' in criteria.")
         
-        loincs = criteria['loinc_codes']
+        loincs = str(criteria['loinc_codes'])[1:-1]
         
         sql_inputs = {'start_date' : t_start.strftime("%d-%b-%Y").upper(),
                       'end_date' : t_end.strftime("%d-%b-%Y").upper(),
