@@ -112,7 +112,7 @@ def get_enrollee_query(model):
                      't2m' : str(t[1].month).zfill(2), 't2y' : t[1].year,
                      't1m' : str(t[0].month).zfill(2), 't1y' : t[0].year,
                      't_end' : t_end.strftime("%d-%b-%y").upper(),
-                     't_start': (t_start.strftime("%d-%b-%y").upper(),
+                     't_start': t_start.strftime("%d-%b-%y").upper(),
                      'tend_yyyymm': str(t_end.year) +str(t_end.month).zfill(2),
                      'tstart_yyyymm':str(t_start.year) + str(t_start.month
                                                             ).zfill(2)
