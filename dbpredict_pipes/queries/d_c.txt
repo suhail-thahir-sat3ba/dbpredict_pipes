@@ -1,51 +1,52 @@
 with active_roster AS
-    (SELECT distinct t0.empi
+    (SELECT distinct t6.empi
     FROM
     (
         (SELECT empi
             FROM MBR_MONTHS.MBR_MONTHS_CORP15
             inner join bi.d_mbr
                 using(mbr_id)
-            WHERE CLNDR_MONTH = 7 AND CLNDR_YEAR = 2018) t0
+            WHERE CLNDR_MONTH = {t6m} AND CLNDR_YEAR = {t6y}) t6
         INNER JOIN 
         (SELECT empi
             FROM MBR_MONTHS.MBR_MONTHS_CORP15
             inner join bi.d_mbr
                 using(mbr_id)
-            WHERE CLNDR_MONTH = 8 AND CLNDR_YEAR = 2018) t1
-        ON 	t1.empi = t0.empi
+            WHERE CLNDR_MONTH = {t5m} AND CLNDR_YEAR = {t5y}) t5
+        ON 	t6.empi = t5.empi
         INNER JOIN 
         (SELECT empi
             FROM MBR_MONTHS.MBR_MONTHS_CORP15
             inner join bi.d_mbr
                 using(mbr_id)
-            WHERE CLNDR_MONTH = 9 AND CLNDR_YEAR = 2018) t2
-        ON 	t1.empi = t2.empi
+            WHERE CLNDR_MONTH = {t4m} AND CLNDR_YEAR = {t4y}) t4
+        ON 	t6.empi = t4.empi
         INNER JOIN 
         (SELECT empi
             FROM MBR_MONTHS.MBR_MONTHS_CORP15
             inner join bi.d_mbr
                 using(mbr_id)
-            WHERE CLNDR_MONTH = 10 AND CLNDR_YEAR = 2018) t3
-        ON 	t1.empi = t3.empi
+            WHERE CLNDR_MONTH = {t3m} AND CLNDR_YEAR = {t3y}) t3
+        ON 	t6.empi = t3.empi
         INNER JOIN 
         (SELECT empi
             FROM MBR_MONTHS.MBR_MONTHS_CORP15
             inner join bi.d_mbr
                 using(mbr_id)
-            WHERE CLNDR_MONTH = 11 AND CLNDR_YEAR = 2018) t4
-        ON 	t1.empi = t4.empi
+            WHERE CLNDR_MONTH = {t2m} AND CLNDR_YEAR = {t2y}) t2
+        ON 	t6.empi = t2.empi
         INNER JOIN 
         (SELECT empi
             FROM MBR_MONTHS.MBR_MONTHS_CORP15
             inner join bi.d_mbr
                 using(mbr_id)
-            WHERE CLNDR_MONTH = 12 AND CLNDR_YEAR = 2018
-            and floor((to_date('01-JAN-19') - mbr_DOB) / 365.25) >= 18) t5 -- put current date here
-        ON 	t1.empi = t5.empi
+            WHERE CLNDR_MONTH = {t1m} AND CLNDR_YEAR = {t1y}
+            and floor((to_date('{today}') - mbr_DOB) / 365.25) >= 18) t1
+        ON 	t6.empi = t1.empi
     )
 ),
-data_pull_members as(
+data_pull_members as
+(
 select * from (
     SELECT Q2.empi,
            Q2.RUN_DATE AS FIRST_RUN_DT
@@ -66,11 +67,12 @@ select * from (
         ON Q2.empi = dr.empi
     WHERE Q2.IND_NBR = 1
         AND dr.DIAB_CURR_RUN = 1
-        AND dr.YYYYMM = '201812')				-- change year
+        AND dr.YYYYMM = '{t1y}{t1m}')
 full outer join active_roster
     using (empi)
 where first_run_dt is not NULL --active and has diabetes
-),
+)
+,
 
 -- ** STEP 1 ** --
 --DIABETIC MEMBERS AND FIRST HIT DATES FROM DISEASE REGISTRY
@@ -87,11 +89,8 @@ DM_CMP_01 AS
          FROM
             (SELECT DISTINCT MBR_ID,
                              Run_Date,
-                             --DIABETES_FIRST_RUN_DT,
                              Currly_Enrld
-                             --CURRENTLY_ENROLLED
              FROM DIS_REG.F_DIS_REG 
-                --TGLOWACK.CURRENT_DR_REPORT
             WHERE DIAB = 1) Q1
          ) Q2
 
@@ -121,21 +120,16 @@ DM_CMP_02 AS
                      MBR.DOB,
                      MBR.GENDER_CODE,
                      ENRL.ENRLM_END_DATE,
-                     CASE WHEN PROD.PROD_CATG_CODE IN ('10', '43', 'Commercial') THEN 'COMMERCIAL'
-                          WHEN PROD.PROD_CATG_CODE IN ('80', 'State') THEN 'MEDICAID'
-                          WHEN PROD.PROD_CATG_CODE IN ('70', 'Medicare') THEN 'MEDICARE'
-                          WHEN PROD.PROD_CATG_CODE IN ('90', 'Self-Funded IHSFS') THEN 'SELF-FUNDED'
-                          ELSE 'OTHER' END AS BUSINESS_SEGMENT
+                     CASE when mbr.empi is not Null then 1 else 0 END AS BUSINESS_SEGMENT
                 FROM DM_CMP_01 T1
                     INNER JOIN BI.D_MBR MBR ON T1.MBR_ID = MBR.MBR_ID
                     INNER JOIN BI.F_ENRL ENRL ON MBR.PRIM_KEY = ENRL.MBR_KEY
                     INNER JOIN BI.D_PROD PROD ON ENRL.BEN_PLAN_KEY = PROD.BEN_PLAN_KEY
-                WHERE (ENRL.ENRLM_START_DATE <= '31-DEC-2019' AND ENRL.ENRLM_END_DATE >= '01-JAN-2017')) Q1
+                WHERE (ENRL.ENRLM_START_DATE <= '{year_ago}' AND ENRL.ENRLM_END_DATE >= '{today}')) Q1
         ) Q2
     WHERE Q2.IND_NBR = 1
     ORDER BY Q2.MBR_ID, Q2.BUSINESS_SEGMENT
 ),
-
 -- ** STEP 2.1 ** --
 --MOST CURRENT BUSINESS SEGMENT
 DM_CMP_ENRLM AS
@@ -145,13 +139,10 @@ FROM DM_CMP_02 BASE
     INNER JOIN
     (SELECT EMPI, MAX(ENRLM_END_DATE) AS RECENT
      FROM DM_CMP_02
-     WHERE BUSINESS_SEGMENT <> 'SELF-FUNDED'
      GROUP BY EMPI) Q1 
      ON (BASE.EMPI = Q1.EMPI AND BASE.ENRLM_END_DATE = Q1.RECENT) 
-WHERE BUSINESS_SEGMENT <> 'SELF-FUNDED'
 and base.empi in (select distinct empi from data_pull_members)
 ),
-
 -- ** STEP 3 ** --
 --MEMBER MONTHS FOR MEMBERS IN STEP 2
 
@@ -161,7 +152,7 @@ DM_CMP_MM AS
             Q1.DIABETES_FIRST_RUN_DT,
             Q1.GENDER_CODE,
             Q1.DOB,
-            Q1.CAL_YR,
+            case when Q1.CAL_YR is not null then 1 else 0 end as CAL_YR,
             Q1.BUSINESS_SEGMENT,
             SUM(MM2.MM_COUNT) AS MM_COUNT
     FROM
@@ -175,9 +166,8 @@ DM_CMP_MM AS
                          MM.BUSINESS_SEGMENT
                     FROM DM_CMP_02 T2
                         INNER JOIN IHA_INF.MM_DETAIL_R11 MM ON T2.MBR_ID = MM.MBR_ID
-                    WHERE MM.CAL_YRMTH BETWEEN '201701' AND '201905' 
-                    --OR (MM.CAL_YR = 2018 AND MM.CAL_MTH IN (1, 2, 3, 4, 5, 6))
-                    ORDER BY T2.MBR_ID) Q1
+                    WHERE MM.CAL_YRMTH BETWEEN '{yearago_yyyymm}' AND '{today_yyyymm}' 
+            ) Q1
                     
     INNER JOIN IHA_INF.MM_DETAIL_R11 MM2 ON Q1.MBR_ID = MM2.MBR_ID 
                 AND Q1.CAL_YR = MM2.CAL_YR AND Q1.CAL_MTH = MM2.CAL_MTH 
@@ -185,28 +175,7 @@ DM_CMP_MM AS
 	where empi in (select distinct empi from data_pull_members)
                 
     GROUP BY Q1.MBR_ID, Q1.EMPI, Q1.DIABETES_FIRST_RUN_DT, Q1.GENDER_CODE, Q1.DOB, Q1.CAL_YR, Q1.BUSINESS_SEGMENT
-    
-    ORDER BY Q1.MBR_ID, Q1.EMPI, Q1.DIABETES_FIRST_RUN_DT, Q1.GENDER_CODE, Q1.DOB, Q1.CAL_YR, Q1.BUSINESS_SEGMENT 
-),
-
--- ** STEP 4 ** --
---CALCULATE AGE FOR MEMBERS
-DM_CMP_AGE AS
-(
-    SELECT Q1.*,
-           TRUNC(MONTHS_BETWEEN(Q1.AGE_CALC, Q1.DOB)/12) AS AGE
-           
-    FROM 
-        (SELECT MM.*,
-                CASE WHEN CAL_YR = 2016 THEN '31-DEC-2016'
-                     WHEN CAL_YR = 2017 THEN '31-DEC-2017'
-                     WHEN CAL_YR = 2018 THEN '31-DEC-2018'
-                     WHEN CAL_YR = 2019 THEN '31-DEC-2019'
-                     END AS AGE_CALC
-  
-        FROM DM_CMP_MM MM) Q1
-),        
-
+    ),
 
 
 -- ** STEP 5 ** --
@@ -217,14 +186,15 @@ DM_CMP_BASE AS
            AGE.MBR_ID,
            AGE.CAL_YR,
            AGE.BUSINESS_SEGMENT,
-           AGE.MM_COUNT,
-           AGE.GENDER_CODE,
-           AGE.AGE,
+--           AGE.MM_COUNT,
+--           AGE.GENDER_CODE,
+--           AGE.AGE,
            AGE.DIABETES_FIRST_RUN_DT
 
-    FROM DM_CMP_AGE AGE WHERE AGE >= 18
-    and empi in (select distinct empi from data_pull_members)
+    FROM DM_CMP_MM AGE
+    where empi in (select distinct empi from data_pull_members)
 ),
+
 
 -- CLAIMS PULL --
 
@@ -243,7 +213,7 @@ DM_CMP_CLM AS
     INNER JOIN BI.F_CLM_EXT EXT ON CLM.TRANSACTION_REF = EXT.TRANSACTION_REF
     INNER JOIN BI.D_PROD PROD ON CLM.BEN_PLAN_KEY = PROD.BEN_PLAN_KEY
 
-    WHERE (CLM.SERV_LINE_START_DATE BETWEEN '01-JAN-2017' AND '31-MAY-2019')
+    WHERE (CLM.SERV_LINE_START_DATE BETWEEN '{year_ago}' AND '{today}')
         AND ((CLM.SRC_SYS = 'HA' AND CLM.CURR_FLAG = 'Y' AND UPPER(CLM.CLM_STAT_CODE) = 'FINAL' AND CLM.CNVRTD_FLAG = 'N') 
             OR (CLM.SRC_SYS = 'MHS' AND CLM.CURR_FLAG = 'Y' AND CLM.RVSD_FROM_CLM_LINE_NBR = '0' AND CLM.RVSD_TO_CLM_LINE_NBR = '0'
             AND (EXT.DEND_FLAG <> 'D' OR EXT.DEND_FLAG IS NULL )))
@@ -2018,4 +1988,4 @@ DM_CMP_COND AS
     FROM DM_CMP_IND_ADD BASE
 )
 select distinct empi from DM_CMP_COND
-where cond_ind = 0 and cal_yr=2019;
+where cond_ind = 0;

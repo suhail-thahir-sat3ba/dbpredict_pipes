@@ -110,9 +110,12 @@ def get_enrollee_query(model):
                      't2m' : str(t[1].month).zfill(2), 't2y' : t[1].year,
                      't1m' : str(t[0].month).zfill(2), 't1y' : t[0].year,
                      'today' : now.strftime("%d-%b-%y").upper(),
-                     'year_ago': (now - relativedelta(months=12)).strftime("%d-%b-%y").upper(), # line 130
-                     'today_yyyymm': str(now.year) +str(now.month).zfill(2) #175
-                     'yearago_yyyymm':  str((now - relativedelta(months=12)).year) + str((now - relativedelta(months=12)).month).zfill(2) # 175
+                     'year_ago': (now - relativedelta(months=12)
+                                  ).strftime("%d-%b-%y").upper(),
+                     'today_yyyymm': str(now.year) +str(now.month).zfill(2) 
+                     'yearago_yyyymm':  str((now - relativedelta(months=12)
+                                             ).year) + str((now - relativedelta
+                                                (months=12)).month).zfill(2)
                      }
         
         model_path = str(query_path) + '/d_c.txt'
