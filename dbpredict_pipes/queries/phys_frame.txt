@@ -1,7 +1,7 @@
 {enrollee_qry}
 ,
 NP_DC_PHY_DATA_PULL as (
-SELECT * 
+SELECT mbr_id, serv_line_start_date, clm.src_sys, prov_key 
 FROM BI.F_CLM clm 
 	INNER JOIN BI.F_CLM_EXT EXT 
 		ON CLM.TRANSACTION_REF = EXT.TRANSACTION_REF
@@ -45,10 +45,9 @@ UNION ALL
 	inner join bi.d_spec bds 
 		on bdp.prim_spec_key=bds.prim_key
 	where clm.src_sys = 'MHS'
-		bds.spec_desc in ({power_specs})
+		and bds.spec_desc in ({power_specs})
 	)
   
 )
 inner join BI.D_MBR MBR
     using (mbr_id)
-;

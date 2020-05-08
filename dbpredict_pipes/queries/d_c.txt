@@ -41,11 +41,11 @@ with active_roster AS
             inner join bi.d_mbr
                 using(mbr_id)
             WHERE CLNDR_MONTH = {t1m} AND CLNDR_YEAR = {t1y}
-            and floor((to_date('{today}') - mbr_DOB) / 365.25) >= 18) t1
+            and floor((to_date('{t_end}') - mbr_DOB) / 365.25) >= 18) t1
         ON 	t6.empi = t1.empi
     )
 ),
-data_pull_members as
+active_members as
 (
 select * from (
     SELECT Q2.empi,
@@ -141,7 +141,7 @@ FROM DM_CMP_02 BASE
      FROM DM_CMP_02
      GROUP BY EMPI) Q1 
      ON (BASE.EMPI = Q1.EMPI AND BASE.ENRLM_END_DATE = Q1.RECENT) 
-and base.empi in (select distinct empi from data_pull_members)
+and base.empi in (select distinct empi from active_members)
 ),
 -- ** STEP 3 ** --
 --MEMBER MONTHS FOR MEMBERS IN STEP 2
@@ -172,7 +172,7 @@ DM_CMP_MM AS
     INNER JOIN IHA_INF.MM_DETAIL_R11 MM2 ON Q1.MBR_ID = MM2.MBR_ID 
                 AND Q1.CAL_YR = MM2.CAL_YR AND Q1.CAL_MTH = MM2.CAL_MTH 
                 AND Q1.BUSINESS_SEGMENT = MM2.BUSINESS_SEGMENT
-	where empi in (select distinct empi from data_pull_members)
+	where empi in (select distinct empi from active_members)
                 
     GROUP BY Q1.MBR_ID, Q1.EMPI, Q1.DIABETES_FIRST_RUN_DT, Q1.GENDER_CODE, Q1.DOB, Q1.CAL_YR, Q1.BUSINESS_SEGMENT
     ),
@@ -192,7 +192,7 @@ DM_CMP_BASE AS
            AGE.DIABETES_FIRST_RUN_DT
 
     FROM DM_CMP_MM AGE
-    where empi in (select distinct empi from data_pull_members)
+    where empi in (select distinct empi from active_members)
 ),
 
 
@@ -1986,6 +1986,8 @@ DM_CMP_COND AS
            CASE WHEN AMP_IND = 1 OR CAD_IND = 1 OR CHF_IND = 1 OR ESRD_IND = 1 OR HS_IND = 1 OR IHD_IND = 1 OR IST_IND = 1 THEN 1 
                 ELSE 0 END AS COND_IND
     FROM DM_CMP_IND_ADD BASE
-)
+), 
+data_pull_members as(
 select distinct empi from DM_CMP_COND
-where cond_ind = 0;
+where cond_ind = 0
+)

@@ -47,4 +47,3 @@ select empi, gpi_class, serv_date, type from
 inner join BI.D_MBR MBR
     using (mbr_id)
 where empi in (select distinct empi from data_pull_members)
-;

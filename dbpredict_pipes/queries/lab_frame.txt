@@ -20,7 +20,7 @@ WHERE
 	AND empi IN (SELECT DISTINCT empi FROM data_pull_members)
 )
 (-- test administered
-SELECT DISTINCT empi, serv_date, loinc_code, CASE WHEN 1=1 THEN "" END AS rslt
+SELECT DISTINCT empi, serv_date, loinc_code, CASE WHEN loinc_code is not null THEN Null END AS rslt
 FROM LABS_DATA
 )
 UNION ALL
@@ -32,12 +32,12 @@ UNION ALL
 (-- increasing/descreasing
 SELECT DISTINCT empi, serv_date, loinc_code, test_change AS rslt
 FROM
-	(SELECT empi, loinc_code, 
+	(SELECT empi, loinc_code, serv_date,
 		CASE WHEN test_rslt > last_rslt THEN 'i'
 			 WHEN test_rslt < last_rslt THEN 'd'
 			 END AS test_change
 		FROM
-			(SELECT empi, loinc_code, test_rslt, 
+			(SELECT empi, loinc_code, test_rslt, serv_date,
 				LAG(test_rslt) over(PARTITION BY empi, loinc_code ORDER BY serv_date) AS last_rslt
 			FROM LABS_DATA
 			WHERE test_rslt IS NOT NULL
@@ -46,4 +46,3 @@ FROM
 	AND last_rslt != test_rslt		-- no change in result
 	)
 )
-;

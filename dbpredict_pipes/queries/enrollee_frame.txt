@@ -1,3 +1,2 @@
 {enrollee_qry}
 select * from data_pull_members
-;

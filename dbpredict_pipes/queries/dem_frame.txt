@@ -60,4 +60,3 @@ FROM
 	GROUP BY empi
     )
 	USING (empi)
-;
