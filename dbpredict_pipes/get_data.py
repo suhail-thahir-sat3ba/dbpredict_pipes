@@ -7,7 +7,7 @@ import pandas as pd
 import cx_Oracle
 import os
 
-def get_data(data_type,model,login, criteria={}):
+def get_data(data_type,model,cred, criteria={}):
     '''
     Retrieve data from SQL server for a particular model based on criteria.
 
@@ -20,7 +20,7 @@ def get_data(data_type,model,login, criteria={}):
     model : str
         String specifying for which model data is pulled (i.e. for which 
         enrollees to make predictions.)
-    login : dict
+    cred : dict
         SQL server login credentials. Dictionary with keys: 'username' and 
         'password'.
     criteria : dict, optional
@@ -61,7 +61,7 @@ def get_data(data_type,model,login, criteria={}):
     sql_inputs = get_sql_inputs(data_type,criteria,enrollee_qry)
     qry = get_sql_query(data_type,sql_inputs)
 
-    data_chunks =  execute_query(qry, login)
+    data_chunks =  execute_query(qry, cred)
     data_path = save_data(data_chunks, data_type)
     return data_path
     
@@ -305,7 +305,7 @@ def get_sql_query(data_type,sql_inputs):
         
     return qry
 
-def execute_query(qry, login):
+def execute_query(qry, cred):
     '''
     Executes SQL query.
 
@@ -313,7 +313,7 @@ def execute_query(qry, login):
     ----------
     qry : str
         SQL query to execute.
-    login : dict
+    cred : dict
         SQL server login credentials. Dictionary with keys: 'username' and 
         'password'.
 
@@ -328,8 +328,8 @@ def execute_query(qry, login):
     
     engine = sqa.create_engine(
         oracle_connection_string.format(
-            username=login['username'],
-            password=login['password'],
+            username=cred['username'],
+            password=cred['password'],
             hostname='db_edwprd',
             port='1521',
             service_name='edwprd',
