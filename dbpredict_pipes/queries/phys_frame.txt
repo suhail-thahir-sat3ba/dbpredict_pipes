@@ -1,7 +1,7 @@
 {enrollee_qry}
 ,
 NP_DC_PHY_DATA_PULL as (
-SELECT * 
+SELECT mbr_id, serv_line_start_date, clm.src_sys, prov_key 
 FROM BI.F_CLM clm 
 	INNER JOIN BI.F_CLM_EXT EXT 
 		ON CLM.TRANSACTION_REF = EXT.TRANSACTION_REF

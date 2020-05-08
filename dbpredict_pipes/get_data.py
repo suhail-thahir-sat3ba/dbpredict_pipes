@@ -376,7 +376,8 @@ def save_data(chunks, data_type):
     try:
         n= 0
         for df in chunks:
-            df['empi'] = df['empi'].astype('str')
+            for col in df.columns:
+                df[col] = df[col].astype('str')
             if data_type=='specialties':
                 power_df = df[df['phys_type']=='pwr']
                 power_df = power_df.merge(ama_to_power, how='inner', left_on='specialty', right_on='power_names')
