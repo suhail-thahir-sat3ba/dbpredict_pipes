@@ -4,7 +4,7 @@ from dateutil.relativedelta import relativedelta
 import sqlalchemy as sqa
 import cx_Oracle
 
-def push_data(data, output_format, model, cred={}):
+def push_data(data, model, cred={}):
     '''Takes predictions and saves results
     Inputs
     -------
@@ -29,8 +29,8 @@ def push_data(data, output_format, model, cred={}):
     data['pred_window_end'] = (now.replace(day=1) + relativedelta(
         months=prediction_windows[model])).strftime("%d-%b-%y").upper()
     
-    if output_format == 'sql':
-        outcome = push_sql(data, 'sample_table_name', cred)
+    outcome = push_sql(data, 'sample_table_name', cred)
+    
     return outcome
 
 def push_sql(data, sql_table, cred):
