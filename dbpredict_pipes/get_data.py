@@ -421,7 +421,6 @@ def save_data(chunks, data_type):
             if 'svcdate' in df.columns:
                 df['svcdate'] = df['svcdate'].astype('<M8[ns]')
             if n == 0:
-                print("started saving {} at {}".format(data_type, datetime.datetime.now()))
                 df.to_hdf(data_path, mode ='w', format='table', key='mbr_id')
             else:
                 df.to_hdf(data_path, mode ='a', format='table', append=True, 
@@ -434,7 +433,6 @@ def save_data(chunks, data_type):
         print("Error type: {}".format(type(e).__name__))
         print(e)
     else:
-        print(datetime.datetime.now())
         return data_path
 
 def rename_columns(data_type):
