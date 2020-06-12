@@ -20,7 +20,6 @@ FROM BI.F_CLM clm
 				 AND (EXT.DEND_FLAG <> 'D' OR EXT.DEND_FLAG IS NULL )
 				)
 			)
-		AND empi IN (SELECT DISTINCT empi FROM data_pull_members)
 )
 select distinct empi, serv_line_start_date, specialty, phys_type from
 (
@@ -32,8 +31,10 @@ select distinct empi, serv_line_start_date, specialty, phys_type from
         on bdp.prim_key = clm.prov_key
     inner join bi.d_txnmy bdt 
         on bdp.prim_txnmy_key=bdt.prim_key
+    inner join hr_spec_keep keep
+	on bdt.txnmy_desc=keep.txnmy_desc
     where clm.src_sys = 'HA'
-        and bdt.txnmy_desc in ({health_rules_specs})
+
     )
 UNION ALL
 --restric power data to top 50 (power 50)
@@ -44,10 +45,13 @@ UNION ALL
 		on bdp.prim_key = clm.prov_key
 	inner join bi.d_spec bds 
 		on bdp.prim_spec_key=bds.prim_key
+  inner join power_spec_keep keep
+		on bds.spec_desc = keep.power_names
 	where clm.src_sys = 'MHS'
-		and bds.spec_desc in ({power_specs})
 	)
   
 )
 inner join BI.D_MBR MBR
     using (mbr_id)
+where empi in (select empi from data_pull_members)
+

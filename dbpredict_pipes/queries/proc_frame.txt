@@ -30,4 +30,5 @@ SELECT DISTINCT empi, cpt_code, serv_line_start_date
 FROM CLAIMS_DATA
 INNER JOIN BI.D_MBR
 	USING (mbr_id)
-WHERE cpt_code {cpt_codes}
+WHERE cpt_code {exclude}in (select cpt_code from cpt_keep)
+
