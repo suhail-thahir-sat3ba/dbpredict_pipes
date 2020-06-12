@@ -9,7 +9,6 @@ def push_data(data, model, cred={}):
     Inputs
     -------
     data : pandas.core.frame.DataFrame with 'id' column and prediction
-    output_format :  string of output choice
     model: string of model choice
     cred: dictionary containg keys 'username' and 'password'
     
@@ -22,14 +21,15 @@ def push_data(data, model, cred={}):
 
     prediction_windows={'np_dc': 12,
                         'd_c': 24}
+    tbl_name = {'np_dc': 'pred_npdc',
+                'd_c': 'pred_dc'}
     
     data = data.rename(columns={'id': 'empi'})
     data['run_date'] = now.date().strftime("%d-%b-%y").upper()
     data['pred_window_start'] = now.replace(day=1).strftime("%d-%b-%y").upper()
-    data['pred_window_end'] = (now.replace(day=1) + relativedelta(
-        months=prediction_windows[model])).strftime("%d-%b-%y").upper()
+    data['pred_window_end'] = (now.replace(day=1) + relativedelta(months=prediction_windows[model])).strftime("%d-%b-%y").upper()
     
-    outcome = push_sql(data, 'sample_table_name', cred)
+    outcome = push_sql(data, tbl_name[model], cred)
     
     return outcome
 
@@ -43,7 +43,8 @@ def push_sql(data, sql_table, cred):
     
     Returns
     -------
-    None
+    Exception or True
+
     '''
     
     oracle_connection_string = ('oracle+cx_oracle://{username}:{password}@' +
@@ -59,7 +60,12 @@ def push_sql(data, sql_table, cred):
         )
     )
     try:
-        data.to_sql(sql_table, engine)
+        data.to_sql(sql_table, engine, if_exists='replace', index=False,
+            dtype= {'empi': sqa.types.VARCHAR(length=20),
+                           'prediction': sqa.types.INTEGER(),
+                           'run_date':  sqa.types.VARCHAR(length=20),
+                           'pred_window_start':  sqa.types.VARCHAR(length=20),
+                           'pred_window_end':  sqa.types.VARCHAR(length=20)})
     except Exception as e:
         return e
     else:

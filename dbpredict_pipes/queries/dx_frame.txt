@@ -23,7 +23,6 @@ FROM BI.F_CLM clm
 				 AND (EXT.DEND_FLAG <> 'D' OR EXT.DEND_FLAG IS NULL )
 				)
 			)
-		AND empi in (SELECT DISTINCT empi FROM data_pull_members)
         )
 )
 SELECT DISTINCT empi, dx_code, SERV_LINE_START_DATE, diag_vrsn_ind FROM
@@ -43,7 +42,6 @@ SELECT DISTINCT empi, dx_code, SERV_LINE_START_DATE, diag_vrsn_ind FROM
         )
 INNER JOIN BI.D_MBR MBR
     USING (mbr_id)
-WHERE  (dx_code IN ({dx_icd9})
-		AND diag_vrsn_ind = 'ICD-9')
-	OR (dx_code IN ({dx_icd10})
-		AND diag_vrsn_ind = 'ICD-10')
+INNER JOIN icd_keep
+    using (dx_code, diag_vrsn_ind)
+where empi in (select empi from data_pull_members)

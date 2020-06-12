@@ -58,9 +58,10 @@ def get_data(data_type,model,cred, criteria={}):
     
     
     enrollee_qry = get_enrollee_query(model)
-    sql_inputs = get_sql_inputs(data_type,criteria,enrollee_qry)
-    qry = get_sql_query(data_type,sql_inputs)
 
+    sql_inputs = get_sql_inputs(data_type,criteria,enrollee_qry, cred)
+    qry = get_sql_query(data_type,sql_inputs)
+    
     data_chunks =  execute_query(qry, cred)
     data_path = save_data(data_chunks, data_type)
     return data_path
@@ -129,8 +130,7 @@ def get_enrollee_query(model):
     
     return qry
 
-
-def get_sql_inputs(data_type,criteria,enrollee_qry):
+def get_sql_inputs(data_type,criteria,enrollee_qry, cred):
     '''
     Parses criteria to create snippets for SQL query.
 
@@ -142,6 +142,9 @@ def get_sql_inputs(data_type,criteria,enrollee_qry):
         List of data elements to query (e.g. which diagnoses codes).
     enrollee_qry : str
         Query snipet to select enrollees for model.
+    cred : dict
+        SQL server login credentials. Dictionary with keys: 'username' and 
+        'password'.
 
     Returns
     -------
@@ -149,7 +152,20 @@ def get_sql_inputs(data_type,criteria,enrollee_qry):
         Dictionary with snippets for SQL query.
 
     '''
-    
+        
+    oracle_connection_string = ('oracle+cx_oracle://{username}:{password}@' +
+    cx_Oracle.makedsn('{hostname}', '{port}', service_name='{service_name}'))
+
+    engine = sqa.create_engine(
+        oracle_connection_string.format(
+            username=cred['username'],
+            password=cred['password'],
+            hostname='db_edwprd',
+            port='1521',
+            service_name='edwprd',
+        )
+    )
+   
     now = datetime.datetime.now()
         
     t_end = now.replace(day=1)-relativedelta(days=1)
@@ -158,7 +174,6 @@ def get_sql_inputs(data_type,criteria,enrollee_qry):
     sql_inputs = {}    
     if data_type=='enrollees':
         pass
-
 
     elif data_type=='diagnoses':
         if 'icd9' not in criteria:
@@ -169,13 +184,19 @@ def get_sql_inputs(data_type,criteria,enrollee_qry):
         icd9 = criteria['icd9']
         icd10 = criteria['icd10']
         
-        icd9str = str(icd9)[1:-1]
-        icd10str = str(icd10)[1:-1]
+        icd9_df = pd.DataFrame({'dx_code': icd9})
+        icd9_df['diag_vrsn_ind'] = 'ICD-9'
+        icd10_df = pd.DataFrame({'dx_code': icd10})
+        icd10_df['diag_vrsn_ind'] = 'ICD-10'
+        
+        icd_df = icd9_df.append(icd10_df)
+        icd_df.to_sql('icd_keep', engine, if_exists='replace',
+                      dtype = {'dx_code': sqa.types.VARCHAR(length=20),
+                               'diag_vrsn_ind': sqa.types.VARCHAR(length=20)})
         
         sql_inputs = {'start_date' : t_start.strftime("%d-%b-%Y").upper(),
-                      'end_date' : t_end.strftime("%d-%b-%Y").upper(),
-                      'dx_icd9' : icd9str,
-                      'dx_icd10' : icd10str}
+                      'end_date' : t_end.strftime("%d-%b-%Y").upper()
+                      }
     
     
     elif data_type=='procedures':
@@ -187,16 +208,19 @@ def get_sql_inputs(data_type,criteria,enrollee_qry):
         ex_flag = criteria['exclude']
         cpts = criteria['cpt_codes']
         
-        if ex_flag:
-            cpt_codes = 'NOT IN ('
-        else:
-            cpt_codes = 'IN ('
+        cpt_df = pd.DataFrame({'cpt_code': cpts})
+        cpt_df.to_sql('cpt_keep', engine, if_exists='replace',
+                      dtype={'cpt_code': sqa.types.VARCHAR(length=20)})
         
-        cpt_codes += str(cpts)[1:-1] + ")"
+        if ex_flag:
+            exclude = 'NOT '
+        else:
+            exclude = ''
+        
         
         sql_inputs = {'start_date' : t_start.strftime("%d-%b-%Y").upper(),
                       'end_date' : t_end.strftime("%d-%b-%Y").upper(),
-                      'cpt_codes' : cpt_codes}        
+                      'exclude' : exclude}        
     
     
     elif data_type=='specialties':
@@ -208,17 +232,18 @@ def get_sql_inputs(data_type,criteria,enrollee_qry):
         
         ama_power_path = str(xwalk_path) + '/power_to_AMA.pickle'
         ama_to_power = pd.read_pickle(ama_power_path)
-        power_specs = list(ama_to_power[ama_to_power['AMA_Equivalent'].isin(ama_specs)]['power_names'])
-        power_str = str(power_specs)[1:-1]
+        power_specs = ama_to_power[ama_to_power['AMA_Equivalent'].isin(ama_specs)][['power_names']]
+        power_specs.to_sql('power_spec_keep', engine, if_exists='replace',
+                           dtype={'power_names': sqa.types.VARCHAR(length=100)}) 
         
         ama_hr_path = str(xwalk_path) + '/healthrules_to_AMA.pickle'
         ama_to_healthrules = pd.read_pickle(ama_hr_path)
-        hr_specs = list(ama_to_healthrules[ama_to_healthrules['AMA_Equivalent'].isin(ama_specs)]['TXNMY_DESC'])
-        hr_str = str(hr_specs)[1:-1]
+        hr_specs = ama_to_healthrules[ama_to_healthrules['AMA_Equivalent'].isin(ama_specs)][['TXNMY_DESC']]
+        hr_specs.to_sql('hr_spec_keep', engine, if_exists='replace',
+                        dtype={'TXNMY_DESC':  sqa.types.VARCHAR(length=100)})
         
-        sql_inputs = {'power_specs': power_str,
-                      'health_rules_specs': hr_str,
-                      'start_date' : t_start.strftime("%d-%b-%Y").upper(),
+        
+        sql_inputs = {'start_date' : t_start.strftime("%d-%b-%Y").upper(),
                       'end_date' : t_end.strftime("%d-%b-%Y").upper()}
         
 
@@ -336,7 +361,8 @@ def execute_query(qry, cred):
         )
     )
 
-    df_chunks = pd.read_sql(qry, engine, chunksize=10000)
+    df_chunks = pd.read_sql(qry, engine, chunksize=10000000)
+
     return df_chunks
 
 def save_data(chunks, data_type):
@@ -380,18 +406,22 @@ def save_data(chunks, data_type):
                 df[col] = df[col].astype('str')
             if data_type=='specialties':
                 power_df = df[df['phys_type']=='pwr']
-                power_df = power_df.merge(ama_to_power, how='inner', left_on='specialty', right_on='power_names')
+                power_df = power_df.merge(ama_to_power, how='left', left_on='specialty', right_on='power_names')
                 power_df = power_df[['empi', 'AMA_Equivalent', 'serv_line_start_date']]
                 
                 hr_df = df[df['phys_type']=='hr']
-                hr_df = hr_df.merge(ama_to_healthrules, how='inner', left_on='specialty', right_on='TXNMY_DESC')
+                hr_df = hr_df.merge(ama_to_healthrules, how='left', left_on='specialty', right_on='TXNMY_DESC')
                 hr_df = hr_df[['empi', 'AMA_Equivalent', 'serv_line_start_date']]
                 
                 df = hr_df.append(power_df)
-                df =df.merge(key_to_ama, how='inner', left_on='AMA_Equivalent', right_on='AMA_key')
+                df =df.merge(key_to_ama, how='left', left_on='AMA_Equivalent', right_on='AMA_Equivalent')
                 df = df[['empi', 'AMA_key', 'serv_line_start_date']]
                 
+            df = df.rename(columns=columns_names_map)
+            if 'svcdate' in df.columns:
+                df['svcdate'] = df['svcdate'].astype('<M8[ns]')
             if n == 0:
+                print("started saving {} at {}".format(data_type, datetime.datetime.now()))
                 df.to_hdf(data_path, mode ='w', format='table', key='mbr_id')
             else:
                 df.to_hdf(data_path, mode ='a', format='table', append=True, 
@@ -404,6 +434,7 @@ def save_data(chunks, data_type):
         print("Error type: {}".format(type(e).__name__))
         print(e)
     else:
+        print(datetime.datetime.now())
         return data_path
 
 def rename_columns(data_type):
@@ -411,7 +442,7 @@ def rename_columns(data_type):
     names
     '''
     demographics = {'empi': 'id',
-                    'enrolled_mons': 'DEM_enrolledmons',
+                    'enrolledmons': 'DEM_enrolledmons',
                     'pcpmons': 'DEM_pcpmons',
                     'rxmons': 'DEM_rxmons',
                     'pcpind': 'DEM_pcpind',

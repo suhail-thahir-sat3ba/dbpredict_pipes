@@ -23,8 +23,8 @@ FROM
 		sum(rx_months) as rxmons,
 		case when sum(pcp_months) > 0 then 1 else 0 end as pcpind,
 		case when sum(rx_months) > 0 then 1 else 0 end as rxind,
-		case when mbr.gender_code = 'M' then 1 else 0 end as male,
-		floor((to_date('{end_date}') - mbr.DOB) / 365.25) as age
+		max(case when mbr.gender_code = 'M' then 1 else 0 end) as male,
+		max(floor((to_date('{end_date}') - mbr.DOB) / 365.25)) as age
 	FROM 
 		(SELECT mm.mbr_id, 
 			SUM(mm.MM_COUNT) as mbr_months, 
@@ -35,8 +35,9 @@ FROM
 		) mem_mons
 		INNER JOIN BI.D_MBR mbr
 			ON mbr.mbr_id = mem_mons.mbr_id
-		WHERE empi in (select empi from data_pull_members)
-		GROUP BY mbr.empi, mbr.gender_code, mbr.DOB
+		WHERE mbr.empi in (select empi from data_pull_members)
+		GROUP BY mbr.empi
+
 	)
 	INNER JOIN
 	(SELECT empi, 
