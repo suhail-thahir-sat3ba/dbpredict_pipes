@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="dbpredict_pipes",
-    version="0.2.0",
+    version="0.3.0",
     author="Bryan Perry",
     author_email="bryan.perry@fticonsulting.com",
     description="End-user specific interface to prepare data for processing and prediction by dbpredict",
