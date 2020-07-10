@@ -67,7 +67,7 @@ select * from (
         ON Q2.empi = dr.empi
     WHERE Q2.IND_NBR = 1
         AND dr.DIAB_CURR_RUN = 1
-        AND dr.YYYYMM = '{t1y}{t1m}')
+        AND dr.YYYYMM = (select max(YYYYMM) from DIS_REG.F_DIS_REG))
 full outer join active_roster
     using (empi)
 where first_run_dt is NULL --active and never had diabetes

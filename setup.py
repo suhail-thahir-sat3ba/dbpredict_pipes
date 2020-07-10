@@ -24,7 +24,7 @@ setuptools.setup(
     python_requires='>=3.7',
     install_requires=['pytest','datetime','python-dateutil',
                       'sqlalchemy','pandas','cx_Oracle',
-                      'pathlib','freezegun'],
+                      'pathlib','freezegun','tables'],
     keywords = 'diabetes prediction complications machine learning',
     project_urls = {
         'FTI CHEP' : 'https://www.fticonsulting.com/industries/healthcare-and-life-sciences/economics-and-policy',

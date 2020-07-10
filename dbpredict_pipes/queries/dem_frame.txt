@@ -1,6 +1,4 @@
-{enrollee_qry}
-,
-lob_roster as(
+with lob_roster as(
 SELECT MBR.EMPI,ENRL.ENRLM_START_DATE,ENRL.ENRLM_END_DATE, 
     CASE WHEN PROD_CATG_CODE IN ('10', '43', 'Commercial') THEN 'COMMERCIAL'
 		 WHEN PROD_CATG_CODE IN ('80', 'State') THEN 'MEDICAID'

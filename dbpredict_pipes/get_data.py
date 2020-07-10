@@ -62,8 +62,9 @@ def get_data(data_type,model,cred, criteria={}):
     sql_inputs = get_sql_inputs(data_type,criteria,enrollee_qry, cred)
     qry = get_sql_query(data_type,sql_inputs)
     
-    data_chunks =  execute_query(qry, cred)
+    data_chunks =  execute_query(qry, cred, data_type)
     data_path = save_data(data_chunks, data_type)
+            
     return data_path
     
 
@@ -280,7 +281,15 @@ def get_sql_inputs(data_type,criteria,enrollee_qry, cred):
     elif data_type=='demographics':
         if 'dem_columns' not in criteria:
             raise KeyError("Expected 'dem_columns' in criteria.")
-            
+        
+        #post enrollees qry to sql
+        try:
+            engine.execute("drop table data_pull_members")
+        except Exception as e:
+            if type(e) != sqa.exc.DatabaseError:
+                raise e
+        engine.execute("create table data_pull_members as {} select * from data_pull_members".format(enrollee_qry))
+        
         dem_cols = criteria['dem_columns']
 
         dem_cols_str = str(dem_cols)[1:-1].replace("'","")
@@ -288,8 +297,8 @@ def get_sql_inputs(data_type,criteria,enrollee_qry, cred):
         sql_inputs = {'end_date' : t_end.strftime("%d-%b-%y").upper(),
                       'dem_cols' : dem_cols_str}
     
-    
-    sql_inputs.update({'enrollee_qry' : enrollee_qry})
+    if data_type != "demographics":
+        sql_inputs.update({'enrollee_qry' : enrollee_qry})
     
     return sql_inputs
     
@@ -330,9 +339,9 @@ def get_sql_query(data_type,sql_inputs):
         
     return qry
 
-def execute_query(qry, cred):
+def execute_query(qry, cred, data_type):
     '''
-    Executes SQL query.
+    Executes SQL query. Drops any intermediate tables created in get_data
 
     Parameters
     ----------
@@ -341,6 +350,8 @@ def execute_query(qry, cred):
     cred : dict
         SQL server login credentials. Dictionary with keys: 'username' and 
         'password'.
+    data_type: str
+        data_type being pulled
 
     Returns
     -------
@@ -362,7 +373,16 @@ def execute_query(qry, cred):
     )
 
     df_chunks = pd.read_sql(qry, engine, chunksize=10000000)
-
+    
+    if data_type == "demographics":
+        engine.execute("drop table data_pull_members")
+    if data_type =="procedures":
+        engine.execute("drop table cpt_keep")
+    if data_type=="diagnoses":
+        engine.execute("drop table icd_keep")
+    if data_type=="specialties":
+        engine.execute("drop table hr_spec_keep")
+        engine.execute("drop table power_spec_keep")
     return df_chunks
 
 def save_data(chunks, data_type):
